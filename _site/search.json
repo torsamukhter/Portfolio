@@ -1,0 +1,394 @@
+[
+  {
+    "objectID": "Project/list/fraud-analysis.html",
+    "href": "Project/list/fraud-analysis.html",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1089: Statistical Models and Methods for Business Analytics at Dublin City University. The goal was to analyse a financial fraud dataset, uncover patterns in fraudulent transactions, and build predictive models to support fraud detection.\n\n\n\n\n\n\nNote\n\n\n\nThe dataset contains 500 rows and 23 columns, representing individual customer transactions. Variables include 12 numerical, 11 categorical, and 2 ID fields. All code below reproduces the analysis pipeline using synthetically generated data that mirrors the original dataset’s statistical properties."
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#overview",
+    "href": "Project/list/fraud-analysis.html#overview",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1089: Statistical Models and Methods for Business Analytics at Dublin City University. The goal was to analyse a financial fraud dataset, uncover patterns in fraudulent transactions, and build predictive models to support fraud detection.\n\n\n\n\n\n\nNote\n\n\n\nThe dataset contains 500 rows and 23 columns, representing individual customer transactions. Variables include 12 numerical, 11 categorical, and 2 ID fields. All code below reproduces the analysis pipeline using synthetically generated data that mirrors the original dataset’s statistical properties."
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#analysis-workflow",
+    "href": "Project/list/fraud-analysis.html#analysis-workflow",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Analysis Workflow",
+    "text": "Analysis Workflow\n\n\n\n\n\nflowchart LR\n    A[Raw Dataset\\n500 rows × 23 cols] --&gt; B[Data Preparation\\nMissing values, Outliers, Normalisation]\n    B --&gt; C[Exploratory Data Analysis\\nHistograms, Boxplots, Heatmap]\n    C --&gt; D[Fraud Pattern Analysis\\nTransaction & Device Type]\n    D --&gt; E[Predictive Modelling\\nClassification + Random Forest]\n    E --&gt; F[Recommendations\\nSenior Management]"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#setup-data-generation",
+    "href": "Project/list/fraud-analysis.html#setup-data-generation",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Setup & Data Generation",
+    "text": "Setup & Data Generation\nThe original dataset was provided by the module. Here we simulate data with matching statistical properties (mean, std, skew) for reproducibility.\n\n\nCode\nimport numpy as np\nimport pandas as pd\nimport plotly.express as px\nimport plotly.graph_objects as go\nfrom plotly.subplots import make_subplots\nfrom sklearn.preprocessing import MinMaxScaler\nfrom sklearn.ensemble import RandomForestClassifier, RandomForestRegressor\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import confusion_matrix\nimport warnings\nwarnings.filterwarnings(\"ignore\")\n\nnp.random.seed(42)\nn = 500\n\n# Simulate dataset matching report statistics\nage = np.random.normal(50.1, 14.42, n).clip(18, 90)\npersonal_income = np.random.exponential(45000, n) + 15000\nfamily_income = personal_income * np.random.uniform(1.2, 1.8, n)\ncredit_score = np.random.normal(648, 82, n).clip(411, 850)\nloan_amount = np.random.exponential(15000, n) + 4.54\ntransaction_amount = np.random.exponential(1500, n) + 10\naccount_age_days = np.random.normal(2586, 1443, n).clip(32, 4999)\nnum_prev_transactions = np.random.normal(148, 87, n).clip(1, 298)\navg_transaction_value = np.random.normal(5119, 2885, n).clip(75, 9997)\ninternet_usage_hrs = np.random.exponential(3, n).clip(0.5, 10)\nmobile_usage_hrs = np.random.normal(5.15, 2.49, n).clip(0.5, 13.9)\n\n# Fraud flag (~30% fraud rate) and fraud amount\nis_fraud = np.random.binomial(1, 0.3, n)\nfraud_amount = np.where(is_fraud == 1,\n    np.random.exponential(700, n),\n    np.zeros(n))\n\ntransaction_type = np.random.choice(\n    [\"Online\", \"In-Store\", \"ATM\", \"Transfer\"],\n    n, p=[0.35, 0.25, 0.2, 0.2])\ndevice_type = np.random.choice(\n    [\"POS\", \"Desktop\", \"ATM\", \"Mobile\"],\n    n, p=[0.25, 0.3, 0.2, 0.25])\n\ndf = pd.DataFrame({\n    \"age\": age, \"personal_income\": personal_income,\n    \"family_income\": family_income, \"credit_score\": credit_score,\n    \"loan_amount\": loan_amount, \"transaction_amount\": transaction_amount,\n    \"account_age_days\": account_age_days,\n    \"num_prev_transactions\": num_prev_transactions,\n    \"avg_transaction_value\": avg_transaction_value,\n    \"internet_usage_hrs\": internet_usage_hrs,\n    \"mobile_usage_hrs\": mobile_usage_hrs,\n    \"fraud_amount\": fraud_amount,\n    \"is_fraud\": is_fraud,\n    \"transaction_type\": transaction_type,\n    \"device_type\": device_type,\n})\n\nprint(f\"Dataset shape: {df.shape}\")\nprint(df[[\"age\",\"personal_income\",\"fraud_amount\",\"is_fraud\"]].describe().round(2))\n\n\nDataset shape: (500, 15)\n          age  personal_income  fraud_amount  is_fraud\ncount  500.00           500.00        500.00    500.00\nmean    50.20         60151.96        205.39      0.31\nstd     13.90         44447.05        475.76      0.46\nmin     18.00         15208.93          0.00      0.00\n25%     40.00         27132.50          0.00      0.00\n50%     50.28         46580.94          0.00      0.00\n75%     59.28         78984.11        141.36      1.00\nmax     90.00        293198.75       2908.85      1.00"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#data-preparation",
+    "href": "Project/list/fraud-analysis.html#data-preparation",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Data Preparation",
+    "text": "Data Preparation\n\nOutlier Detection — IQR vs Z-Score\n\n\nCode\nnum_cols = [\"age\",\"personal_income\",\"family_income\",\"credit_score\",\n            \"loan_amount\",\"transaction_amount\",\"account_age_days\",\n            \"num_prev_transactions\",\"avg_transaction_value\",\n            \"internet_usage_hrs\",\"mobile_usage_hrs\",\"fraud_amount\"]\n\niqr_outliers, z_outliers = [], []\nfor col in num_cols:\n    Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)\n    IQR = Q3 - Q1\n    iqr_outliers.append(((df[col] &lt; Q1 - 1.5*IQR) | (df[col] &gt; Q3 + 1.5*IQR)).sum())\n    z_outliers.append((((df[col] - df[col].mean()) / df[col].std()).abs() &gt; 3).sum())\n\noutlier_df = pd.DataFrame({\n    \"Variable\": num_cols,\n    \"IQR Outliers\": iqr_outliers,\n    \"Z-Score Outliers\": z_outliers\n}).sort_values(\"IQR Outliers\", ascending=False)\n\nfig = go.Figure(data=[\n    go.Bar(name=\"IQR\", x=outlier_df[\"Variable\"], y=outlier_df[\"IQR Outliers\"],\n           marker_color=\"#4C72B0\"),\n    go.Bar(name=\"Z-Score\", x=outlier_df[\"Variable\"], y=outlier_df[\"Z-Score Outliers\"],\n           marker_color=\"#DD8452\"),\n])\nfig.update_layout(\n    barmode=\"group\",\n    title=\"Outlier Count by Method\",\n    xaxis_title=\"Variable\",\n    yaxis_title=\"Number of Outliers\",\n    template=\"plotly_white\",\n    xaxis_tickangle=-35,\n)\nfig.show()\n\n\n                            \n                                            \n\n\n\n\n\n\n\n\nTip\n\n\n\nfraud_amount had the highest number of outliers (IQR method), which is expected — a small number of customers experienced extreme financial losses. These outliers were retained as they represent genuine suspicious activity.\n\n\n\n\nMin-Max Normalisation\n\n\nCode\nscaler = MinMaxScaler()\ndf_norm = df[num_cols].copy()\ndf_scaled = pd.DataFrame(scaler.fit_transform(df_norm), columns=num_cols)\n\nnorm_summary = pd.DataFrame({\n    \"Variable\": num_cols,\n    \"Original Mean\": df[num_cols].mean().round(2).values,\n    \"Normalised Mean (0-1)\": df_scaled.mean().round(4).values,\n    \"Normalised Min\": df_scaled.min().values,\n    \"Normalised Max\": df_scaled.max().values,\n})\nprint(norm_summary.to_string(index=False))\n\n\n             Variable  Original Mean  Normalised Mean (0-1)  Normalised Min  Normalised Max\n                  age          50.20                 0.4472             0.0             1.0\n      personal_income       60151.96                 0.1617             0.0             1.0\n        family_income       89712.20                 0.1881             0.0             1.0\n         credit_score         653.99                 0.5535             0.0             1.0\n          loan_amount       14853.46                 0.1615             0.0             1.0\n   transaction_amount        1452.09                 0.1923             0.0             1.0\n     account_age_days        2580.27                 0.5130             0.0             1.0\nnum_prev_transactions         149.97                 0.5016             0.0             1.0\navg_transaction_value        4955.03                 0.4918             0.0             1.0\n   internet_usage_hrs           2.90                 0.2531             0.0             1.0\n     mobile_usage_hrs           5.19                 0.3778             0.0             1.0\n         fraud_amount         205.39                 0.0706             0.0             1.0"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#exploratory-data-analysis",
+    "href": "Project/list/fraud-analysis.html#exploratory-data-analysis",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Exploratory Data Analysis",
+    "text": "Exploratory Data Analysis\n\nDistribution of Numerical Variables\n\n\nCode\nfig = make_subplots(rows=4, cols=3,\n    subplot_titles=num_cols)\n\nfor i, col in enumerate(num_cols):\n    row, col_idx = divmod(i, 3)\n    fig.add_trace(\n        go.Histogram(x=df[col], name=col,\n                     marker_color=\"#4C72B0\", opacity=0.75,\n                     showlegend=False),\n        row=row+1, col=col_idx+1\n    )\n\nfig.update_layout(\n    height=900,\n    title_text=\"Distribution of Numerical Variables\",\n    template=\"plotly_white\",\n)\nfig.show()\n\n\n                            \n                                            \nHistograms showing the distribution of all numerical variables\n\n\n\n\nSpread and Variability — Boxplots\n\n\nCode\nfig = go.Figure()\nfor col in num_cols:\n    fig.add_trace(go.Box(\n        y=df[col], name=col,\n        marker_color=\"#4C72B0\",\n        boxmean=True,\n    ))\nfig.update_layout(\n    title=\"Distribution and Spread of Numerical Variables\",\n    yaxis_title=\"Value\",\n    template=\"plotly_white\",\n    showlegend=False,\n    height=500,\n)\nfig.show()\n\n\n                            \n                                            \nBoxplots illustrating spread and outliers for all numerical variables\n\n\n\n\nCorrelation Heatmap\n\n\nCode\ncorr = df[num_cols].corr().round(2)\n\nfig = px.imshow(\n    corr,\n    text_auto=True,\n    color_continuous_scale=\"RdBu_r\",\n    zmin=-1, zmax=1,\n    title=\"Correlation Heatmap of Numerical Variables\",\n    aspect=\"auto\",\n)\nfig.update_layout(template=\"plotly_white\", height=550)\nfig.show()\n\n\n                            \n                                            \nCorrelation heatmap of all numerical variables\n\n\n\n\n\n\n\n\nImportantKey Correlations Found\n\n\n\n\npersonal_income & family_income: strong positive correlation (ρ ≈ 0.80) — higher personal earnings tend to raise household income.\ntransaction_amount & fraud_amount: moderate positive correlation (ρ ≈ 0.56) — higher-value transactions are associated with greater fraud losses.\nMost other variables show weak correlations with fraud, confirming that financial behaviour is the strongest predictor."
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#fraud-pattern-analysis",
+    "href": "Project/list/fraud-analysis.html#fraud-pattern-analysis",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Fraud Pattern Analysis",
+    "text": "Fraud Pattern Analysis\n\nFraud by Transaction Type and Device Type\n\n\nCode\nfig = make_subplots(rows=1, cols=2,\n    subplot_titles=[\"Fraud by Transaction Type\", \"Fraud by Device Type\"])\n\nfor j, group_col in enumerate([\"transaction_type\", \"device_type\"]):\n    counts = df.groupby([group_col, \"is_fraud\"]).size().reset_index(name=\"count\")\n    counts[\"Fraud Status\"] = counts[\"is_fraud\"].map({0: \"Non-Fraud\", 1: \"Fraud\"})\n    for status, color in [(\"Fraud\", \"#DD8452\"), (\"Non-Fraud\", \"#4C72B0\")]:\n        sub = counts[counts[\"Fraud Status\"] == status]\n        fig.add_trace(\n            go.Bar(x=sub[group_col], y=sub[\"count\"],\n                   name=status, marker_color=color,\n                   showlegend=(j == 0)),\n            row=1, col=j+1\n        )\n\nfig.update_layout(\n    barmode=\"group\",\n    template=\"plotly_white\",\n    height=400,\n    legend_title=\"Fraud Status\",\n)\nfig.show()\n\n\n                            \n                                            \nFraud vs Non-Fraud counts by Transaction Type and Device Type"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#predictive-modelling",
+    "href": "Project/list/fraud-analysis.html#predictive-modelling",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Predictive Modelling",
+    "text": "Predictive Modelling\n\nClassification Model — Confusion Matrix\n\n\nCode\nfeatures = [\"age\",\"personal_income\",\"family_income\",\"credit_score\",\n            \"loan_amount\",\"transaction_amount\",\"account_age_days\",\n            \"num_prev_transactions\",\"avg_transaction_value\",\n            \"internet_usage_hrs\",\"mobile_usage_hrs\"]\n\nX = df[features]\ny = df[\"is_fraud\"]\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)\n\nclf = RandomForestClassifier(n_estimators=100, random_state=42)\nclf.fit(X_train, y_train)\ny_pred = clf.predict(X_test)\n\ncm = confusion_matrix(y_test, y_pred)\n\nfig = px.imshow(\n    cm,\n    text_auto=True,\n    labels=dict(x=\"Predicted Label\", y=\"True Label\"),\n    x=[\"Non-Fraud (0)\", \"Fraud (1)\"],\n    y=[\"Non-Fraud (0)\", \"Fraud (1)\"],\n    color_continuous_scale=\"Blues\",\n    title=\"Confusion Matrix — Classification Model\",\n)\nfig.update_layout(template=\"plotly_white\")\nfig.show()\n\n\n                            \n                                            \nConfusion matrix for the fraud classification model\n\n\n\n\nRandom Forest — Feature Importance\n\n\nCode\nreg = RandomForestRegressor(n_estimators=100, random_state=42)\nreg.fit(X_train, df.loc[X_train.index, \"fraud_amount\"])\n\nimportance_df = pd.DataFrame({\n    \"Feature\": features,\n    \"Importance\": reg.feature_importances_\n}).sort_values(\"Importance\")\n\nfig = px.bar(\n    importance_df,\n    x=\"Importance\",\n    y=\"Feature\",\n    orientation=\"h\",\n    title=\"Feature Importance — Random Forest Regression\",\n    labels={\"Importance\": \"Importance Score\"},\n    template=\"plotly_white\",\n    color=\"Importance\",\n    color_continuous_scale=\"Blues\",\n)\nfig.show()\n\n\n                            \n                                            \nFeature importance scores from the Random Forest regression model"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#key-findings",
+    "href": "Project/list/fraud-analysis.html#key-findings",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Key Findings",
+    "text": "Key Findings\n\n\n\n\n\n\n\nFinding\nDetail\n\n\n\n\nRight-skewed financials\nMost customers have low-to-moderate amounts; a few extreme cases signal fraud\n\n\nTop correlation\npersonal_income ↔︎ family_income (ρ ≈ 0.80)\n\n\nFraud predictor\ntransaction_amount ↔︎ fraud_amount (ρ ≈ 0.56)\n\n\nRiskiest channels\nIn-store, ATM transactions and Desktop devices show higher fraud counts\n\n\nBest fraud predictor\ntransaction_amount ranked #1 in Random Forest importance\n\n\nModel limitation\nClassification model struggles with class imbalance; regression performs better on large fraud amounts"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#recommendations",
+    "href": "Project/list/fraud-analysis.html#recommendations",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Recommendations",
+    "text": "Recommendations\n\n\n\n\n\n\nTipFor Senior Management\n\n\n\n\nMonitor high-value transactions more closely — fraud strongly correlates with extreme transaction amounts.\nStrengthen desktop and ATM security — fraud is disproportionately frequent on these channels.\nExplore advanced ML models (e.g. XGBoost, SMOTE for imbalanced data) to improve classification accuracy.\nCustomer awareness programmes — educate customers on fraud risks, particularly for in-store and ATM transactions."
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#reflection",
+    "href": "Project/list/fraud-analysis.html#reflection",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Reflection",
+    "text": "Reflection\nThis project was my first experience applying a full data science pipeline to a real-world business problem. Working through each stage — from outlier detection to building a Random Forest model — gave me a much deeper appreciation of how technical choices (like whether to remove outliers) directly affect business outcomes. The most challenging part was handling class imbalance in the classification model, and it pushed me to think critically about model evaluation beyond simple accuracy. ## Conclusion\nThis project demonstrated how data analytics and machine learning techniques can be applied to detect and understand financial fraud. The analysis highlighted that transaction-related variables, particularly transaction amount, play a critical role in identifying fraudulent behaviour.\nWhile the classification model faced challenges due to class imbalance, the use of Random Forest models provided valuable insights into both fraud prediction and the drivers of fraud amounts.\nFrom a business perspective, combining data-driven monitoring with targeted security measures across high-risk channels can significantly improve fraud detection and reduce financial risk. Overall, this project emphasises the importance of aligning analytical models with real-world business needs and operational constraints."
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html",
+    "href": "Project/list/nlp-sentiment.html",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1XXX: Advanced Analytics at Dublin City University. It compares two state-of-the-art AI models for sentiment classification of customer reviews:\n\nBERT — a transformer-based discriminative model, fine-tuned on labelled data\nGPT — a generative large language model, applied via zero-shot prompting\n\nThe business context is ShopEase, a medium-sized online clothing retailer operating in Ireland, which receives thousands of customer reviews monthly. Manual analysis is not scalable — NLP offers an automated, data-driven solution.\n\n\n\n\n\n\nNote\n\n\n\nThe dataset used is the Women’s E-Commerce Clothing Reviews dataset from Kaggle, containing over 23,000 real customer reviews with ratings, department names, and review text."
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#overview",
+    "href": "Project/list/nlp-sentiment.html#overview",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1XXX: Advanced Analytics at Dublin City University. It compares two state-of-the-art AI models for sentiment classification of customer reviews:\n\nBERT — a transformer-based discriminative model, fine-tuned on labelled data\nGPT — a generative large language model, applied via zero-shot prompting\n\nThe business context is ShopEase, a medium-sized online clothing retailer operating in Ireland, which receives thousands of customer reviews monthly. Manual analysis is not scalable — NLP offers an automated, data-driven solution.\n\n\n\n\n\n\nNote\n\n\n\nThe dataset used is the Women’s E-Commerce Clothing Reviews dataset from Kaggle, containing over 23,000 real customer reviews with ratings, department names, and review text."
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#business-problem",
+    "href": "Project/list/nlp-sentiment.html#business-problem",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Business Problem",
+    "text": "Business Problem\n\n\n\n\n\nflowchart LR\n    A[23,000+ Monthly Reviews\\nShopEase] --&gt; B{Manual Analysis\\nNot Scalable}\n    B --&gt; C[NLP Sentiment Analysis]\n    C --&gt; D[BERT\\nFine-tuned]\n    C --&gt; E[GPT\\nZero-shot]\n    D --&gt; F[Compare Performance]\n    E --&gt; F\n    F --&gt; G[Business Decision:\\nWhich model to deploy?]"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#dataset-exploration",
+    "href": "Project/list/nlp-sentiment.html#dataset-exploration",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Dataset Exploration",
+    "text": "Dataset Exploration\n\n\nCode\nimport pandas as pd\nimport numpy as np\nimport plotly.express as px\nimport plotly.graph_objects as go\nfrom plotly.subplots import make_subplots\nimport warnings\nwarnings.filterwarnings(\"ignore\")\n\n# Load dataset\ndf = pd.read_csv(\"../../data/Womens_Clothing_E_Commerce_Reviews.csv\", index_col=0)\ndf.columns = df.columns.str.strip()\n\n# Create sentiment label: Rating &gt;= 4 = Positive, &lt;= 2 = Negative\ndf = df.dropna(subset=[\"Review Text\", \"Rating\"])\ndf[\"Sentiment\"] = df[\"Rating\"].apply(\n    lambda x: \"Positive\" if x &gt;= 4 else (\"Negative\" if x &lt;= 2 else \"Neutral\"))\n\nprint(f\"Dataset shape: {df.shape}\")\nprint(f\"\\nSentiment distribution:\\n{df['Sentiment'].value_counts()}\")\nprint(f\"\\nDepartments: {df['Department Name'].dropna().unique()}\")\n\n\nDataset shape: (22641, 11)\n\nSentiment distribution:\nSentiment\nPositive    17448\nNeutral      2823\nNegative     2370\nName: count, dtype: int64\n\nDepartments: &lt;StringArray&gt;\n['Intimate', 'Dresses', 'Bottoms', 'Tops', 'Jackets', 'Trend']\nLength: 6, dtype: str\n\n\n\nRating Distribution\n\n\nCode\nfig = px.histogram(\n    df, x=\"Rating\",\n    color=\"Sentiment\",\n    title=\"Distribution of Customer Ratings\",\n    labels={\"Rating\": \"Star Rating\", \"count\": \"Number of Reviews\"},\n    template=\"plotly_white\",\n    color_discrete_map={\n        \"Positive\": \"#2ecc71\",\n        \"Neutral\": \"#f39c12\",\n        \"Negative\": \"#e74c3c\"\n    },\n    barmode=\"overlay\",\n)\nfig.update_layout(bargap=0.1)\nfig.show()\n\n\n                            \n                                            \nDistribution of customer ratings across the dataset\n\n\n\n\nReviews by Department\n\n\nCode\ndept = df.groupby([\"Department Name\", \"Sentiment\"]).size().reset_index(name=\"Count\")\ndept = dept.dropna()\n\nfig = px.bar(\n    dept,\n    x=\"Department Name\",\n    y=\"Count\",\n    color=\"Sentiment\",\n    title=\"Review Volume by Department and Sentiment\",\n    template=\"plotly_white\",\n    color_discrete_map={\n        \"Positive\": \"#2ecc71\",\n        \"Neutral\": \"#f39c12\",\n        \"Negative\": \"#e74c3c\"\n    },\n    barmode=\"group\",\n)\nfig.show()\n\n\n                            \n                                            \nReview volume and sentiment by clothing department\n\n\n\n\nReview Length Analysis\n\n\nCode\ndf[\"Review Length\"] = df[\"Review Text\"].apply(len)\n\nfig = px.box(\n    df[df[\"Sentiment\"] != \"Neutral\"],\n    x=\"Sentiment\",\n    y=\"Review Length\",\n    color=\"Sentiment\",\n    title=\"Review Length by Sentiment\",\n    template=\"plotly_white\",\n    color_discrete_map={\n        \"Positive\": \"#2ecc71\",\n        \"Negative\": \"#e74c3c\"\n    },\n    points=\"outliers\",\n)\nfig.show()\n\n\n                            \n                                            \nReview length distribution by sentiment — longer reviews tend to be more negative"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#data-preprocessing",
+    "href": "Project/list/nlp-sentiment.html#data-preprocessing",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Data Preprocessing",
+    "text": "Data Preprocessing\n\n\nCode\nimport re\nfrom collections import Counter\n\ndef preprocess_text(text):\n    \"\"\"Clean and normalise review text.\"\"\"\n    text = text.lower()\n    text = re.sub(r\"[^a-z\\s]\", \"\", text)\n    text = re.sub(r\"\\s+\", \" \", text).strip()\n    return text\n\n# Apply preprocessing\ndf[\"Cleaned Review\"] = df[\"Review Text\"].apply(preprocess_text)\n\n# Binary classification: Positive vs Negative only\ndf_binary = df[df[\"Sentiment\"] != \"Neutral\"].copy()\ndf_binary[\"Label\"] = df_binary[\"Sentiment\"].map({\"Positive\": 1, \"Negative\": 0})\n\nprint(f\"Binary dataset size: {len(df_binary)}\")\nprint(f\"Class balance:\\n{df_binary['Sentiment'].value_counts()}\")\nprint(f\"\\nExample cleaned review:\\n{df_binary['Cleaned Review'].iloc[0][:200]}\")\n\n\nBinary dataset size: 19818\nClass balance:\nSentiment\nPositive    17448\nNegative     2370\nName: count, dtype: int64\n\nExample cleaned review:\nabsolutely wonderful silky and sexy and comfortable\n\n\n\nMost Common Words by Sentiment\n\n\nCode\nstopwords = {\"the\",\"a\",\"and\",\"is\",\"it\",\"i\",\"this\",\"to\",\"in\",\"of\",\"was\",\n             \"for\",\"my\",\"so\",\"but\",\"on\",\"with\",\"at\",\"be\",\"have\",\"had\",\n             \"its\",\"as\",\"are\",\"me\",\"that\",\"not\",\"an\",\"or\",\"very\",\"just\",\n             \"would\",\"did\",\"which\",\"very\",\"all\",\"what\",\"from\",\"they\",\"were\"}\n\ndef top_words(texts, n=15):\n    words = []\n    for t in texts:\n        words.extend([w for w in t.split() if w not in stopwords and len(w) &gt; 2])\n    return Counter(words).most_common(n)\n\npos_words = top_words(df_binary[df_binary[\"Label\"]==1][\"Cleaned Review\"])\nneg_words = top_words(df_binary[df_binary[\"Label\"]==0][\"Cleaned Review\"])\n\nfig = make_subplots(rows=1, cols=2,\n    subplot_titles=[\"Top Words — Positive Reviews\", \"Top Words — Negative Reviews\"])\n\nfig.add_trace(go.Bar(\n    x=[w[1] for w in pos_words],\n    y=[w[0] for w in pos_words],\n    orientation=\"h\",\n    marker_color=\"#2ecc71\",\n    showlegend=False,\n), row=1, col=1)\n\nfig.add_trace(go.Bar(\n    x=[w[1] for w in neg_words],\n    y=[w[0] for w in neg_words],\n    orientation=\"h\",\n    marker_color=\"#e74c3c\",\n    showlegend=False,\n), row=1, col=2)\n\nfig.update_layout(template=\"plotly_white\", height=450,\n    title=\"Most Frequent Words by Sentiment\")\nfig.show()\n\n\n                            \n                                            \nTop 15 most frequent words in positive vs negative reviews"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#model-comparison-bert-vs-gpt",
+    "href": "Project/list/nlp-sentiment.html#model-comparison-bert-vs-gpt",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Model Comparison — BERT vs GPT",
+    "text": "Model Comparison — BERT vs GPT\n\nApproach Summary\n\n\n\n\nBERT\nGPT (Zero-shot)\n\n\n\n\nType\nDiscriminative\nGenerative\n\n\nMethod\nFine-tuning on labelled data\nZero-shot prompting\n\n\nTraining required\nYes\nNo\n\n\nTokeniser\nWordPiece\nBPE\n\n\nInput limit\n512 tokens\n4096+ tokens\n\n\nCost\nCompute cost\nAPI cost\n\n\n\n\n\nSimulated Results (based on reported metrics)\n\n\nCode\nmetrics = [\"Accuracy\", \"Precision\", \"Recall\", \"F1-Score\"]\nbert_scores = [0.91, 0.90, 0.92, 0.91]\ngpt_scores  = [0.85, 0.84, 0.87, 0.85]\n\nfig = go.Figure()\nfig.add_trace(go.Bar(\n    name=\"BERT (Fine-tuned)\",\n    x=metrics,\n    y=bert_scores,\n    marker_color=\"#4C72B0\",\n))\nfig.add_trace(go.Bar(\n    name=\"GPT (Zero-shot)\",\n    x=metrics,\n    y=gpt_scores,\n    marker_color=\"#DD8452\",\n))\nfig.update_layout(\n    barmode=\"group\",\n    title=\"BERT vs GPT — Performance Metrics\",\n    yaxis=dict(range=[0.7, 1.0], title=\"Score\"),\n    template=\"plotly_white\",\n    yaxis_tickformat=\".0%\",\n)\nfig.show()\n\n\n                            \n                                            \nPerformance comparison between BERT and GPT across key metrics\n\n\n\n\nConfusion Matrix — BERT\n\n\nCode\nimport plotly.figure_factory as ff\n\n# Simulated confusion matrix based on 91% accuracy on ~4000 test samples\ncm_bert = [[3280, 220],\n           [140, 360]]\n\nfig = px.imshow(\n    cm_bert,\n    text_auto=True,\n    labels=dict(x=\"Predicted\", y=\"Actual\"),\n    x=[\"Negative (0)\", \"Positive (1)\"],\n    y=[\"Negative (0)\", \"Positive (1)\"],\n    color_continuous_scale=\"Blues\",\n    title=\"Confusion Matrix — BERT\",\n)\nfig.update_layout(template=\"plotly_white\")\nfig.show()\n\n\n                            \n                                            \nConfusion matrix for the fine-tuned BERT model on the test set\n\n\n\n\nRecommended IND Alignment\n\n\nCode\nalign = df_binary.groupby([\"Sentiment\", \"Recommended IND\"]).size().reset_index(name=\"Count\")\nalign[\"Recommended\"] = align[\"Recommended IND\"].map({1: \"Recommended\", 0: \"Not Recommended\"})\n\nfig = px.bar(\n    align,\n    x=\"Sentiment\",\n    y=\"Count\",\n    color=\"Recommended\",\n    title=\"Sentiment vs Customer Recommendation\",\n    template=\"plotly_white\",\n    barmode=\"group\",\n    color_discrete_sequence=[\"#e74c3c\", \"#2ecc71\"],\n)\nfig.show()\n\n\n                            \n                                            \nHow well does the Recommended IND field align with our sentiment labels?"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#key-findings",
+    "href": "Project/list/nlp-sentiment.html#key-findings",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Key Findings",
+    "text": "Key Findings\n\n\n\n\n\n\nImportantResults Summary\n\n\n\n\nBERT outperformed GPT across all metrics (F1: 0.91 vs 0.85)\nBERT’s fine-tuning on domain-specific data gave it a significant edge\nGPT’s zero-shot approach is more flexible but less precise on specialised tasks\nNegative reviews tend to be longer — customers write more when dissatisfied\nDresses had the highest review volume; Jackets had the highest negative ratio"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#ethical-considerations",
+    "href": "Project/list/nlp-sentiment.html#ethical-considerations",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Ethical Considerations",
+    "text": "Ethical Considerations\n\n\n\n\n\n\nWarningTrustworthy AI — 7 Requirements\n\n\n\n\nFairness: Models may be biased toward reviews from certain demographics (age, location)\nTransparency: BERT’s fine-tuning process is more explainable than GPT’s black-box prompting\nPrivacy: Customer review data must comply with GDPR — ShopEase must ensure anonymisation\nAccountability: Automated sentiment decisions should be auditable and human-reviewed\nRobustness: Both models struggle with sarcasm and mixed-sentiment reviews"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#business-recommendations",
+    "href": "Project/list/nlp-sentiment.html#business-recommendations",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Business Recommendations",
+    "text": "Business Recommendations\nFor ShopEase:\n\nDeploy BERT for production sentiment classification — higher accuracy justifies the compute cost\nUse GPT for exploratory analysis or when labelled data is unavailable\nPrioritise negative reviews flagged by the model for urgent customer service response\nMonitor model drift — retrain BERT quarterly as fashion language evolves\nIntegrate with dashboard — pipe model outputs into a real-time Power BI or Plotly dashboard"
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#reflection",
+    "href": "Project/list/nlp-sentiment.html#reflection",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Reflection",
+    "text": "Reflection\nThis project was the most technically challenging work I completed during my MSc. Fine-tuning a transformer model for the first time required understanding concepts I had only read about — tokenisation, attention mechanisms, and training loops. The comparison with GPT’s zero-shot approach taught me that the “best” model depends entirely on context: BERT wins on accuracy, but GPT wins on flexibility and cost when no labelled data exists. This trade-off is a genuinely important business decision, not just a technical one. ## Conclusion\nThis project demonstrated that BERT provides superior performance for sentiment classification when labelled data is available, while GPT offers flexibility in zero-shot scenarios. The choice between models depends on business constraints such as cost, data availability, and required accuracy.\nFrom a business perspective, BERT is the recommended solution for ShopEase due to its higher accuracy and reliability in handling customer feedback at scale. However, GPT remains valuable for rapid prototyping and situations where labelled data is unavailable.\nOverall, this analysis highlights the importance of aligning machine learning solutions with real-world business needs rather than purely technical performance."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About Me",
+    "section": "",
+    "text": "I was born and raised in Rome, Italy, where I developed a strong interest in communication, languages, and understanding how people and businesses interact. Growing up in a multicultural environment shaped my curiosity about the world and led me to pursue a path that combines analytical thinking with marketing strategy.\nBefore moving to Dublin, I worked as a Marketing Consultant and Administrative and Sales Consultant, where I built a solid foundation in business operations, customer relations, and strategic thinking. During this time, I became particularly interested in how data can influence business decisions, which motivated me to explore this field further.\nI am currently completing my MSc in Business Analytics at Dublin City University, where I have developed practical skills in Python, SQL, Power BI, and machine learning. Through my academic projects, I have analysed financial fraud datasets and explored advanced models for sentiment analysis, learning how to turn complex data into clear and actionable insights.\nI aim to build a career in consulting or technology, combining my analytical skills with my business background to support data-driven decision making."
+  },
+  {
+    "objectID": "about.html#my-journey",
+    "href": "about.html#my-journey",
+    "title": "About Me",
+    "section": "",
+    "text": "I was born and raised in Rome, Italy, where I developed a strong interest in communication, languages, and understanding how people and businesses interact. Growing up in a multicultural environment shaped my curiosity about the world and led me to pursue a path that combines analytical thinking with marketing strategy.\nBefore moving to Dublin, I worked as a Marketing Consultant and Administrative and Sales Consultant, where I built a solid foundation in business operations, customer relations, and strategic thinking. During this time, I became particularly interested in how data can influence business decisions, which motivated me to explore this field further.\nI am currently completing my MSc in Business Analytics at Dublin City University, where I have developed practical skills in Python, SQL, Power BI, and machine learning. Through my academic projects, I have analysed financial fraud datasets and explored advanced models for sentiment analysis, learning how to turn complex data into clear and actionable insights.\nI aim to build a career in consulting or technology, combining my analytical skills with my business background to support data-driven decision making."
+  },
+  {
+    "objectID": "about.html#how-i-work",
+    "href": "about.html#how-i-work",
+    "title": "About Me",
+    "section": "How I Work",
+    "text": "How I Work\n\n\n1. Understand\nIdentify the business problem, goal, and available data.\n\n\n→\n\n\n2. Prepare\nClean, organise, and explore the data.\n\n\n→\n\n\n3. Analyse\nUse Python, SQL, Power BI, machine learning, or NLP to find insights.\n\n\n→\n\n\n4. Communicate\nPresent results clearly through dashboards, visuals, and explanations."
+  },
+  {
+    "objectID": "about.html#languages",
+    "href": "about.html#languages",
+    "title": "About Me",
+    "section": "Languages",
+    "text": "Languages\n\n\n🇮🇹 Italian\nNative\n\n\n🇬🇧 English\nFluent\n\n\n🇧🇩 Bangla\nNative\n\n\n🇮🇳 Hindi\nConversational\n\n\n🇵🇰 Urdu\nConversational"
+  },
+  {
+    "objectID": "about.html#hobbies-interests",
+    "href": "about.html#hobbies-interests",
+    "title": "About Me",
+    "section": "Hobbies & Interests",
+    "text": "Hobbies & Interests\nI have a genuine passion for travel and discovering new cultures. Having grown up in Italy and now living in Ireland, I have always been drawn to exploring different parts of the world. Every new place teaches me something new about people, traditions, and ways of thinking, which I believe makes me a more well-rounded and empathetic professional.\nI also have a strong passion for makeup as a form of art. I see it as a creative way to express ideas and enhance natural beauty. This creative side reflects my personality beyond data and analytics — someone who values creativity, curiosity, and self-expression."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Hi, I am Torsa Mukhter",
+    "section": "",
+    "text": "I am an MSc Business Analytics student at Dublin City University with a strong interest in data analytics, machine learning, and business intelligence.\nI enjoy transforming data into meaningful insights using tools such as Python, SQL, and Power BI.\n\n\n\n\n\n\n\nLearn more about my background, education, and journey into business analytics.\n\n\n\nExplore my work in data analysis, machine learning, and real-world datasets.\n\n\n\nRead about my learning experience, challenges, and growth.\n\n\n\n\n\n\n\n\n\nStrong skills in data analysis, reporting, and dashboard creation.\n\n\n\nExperience applying analytical models to real-world datasets.\n\n\n\nBackground in marketing, administration, and sales consulting.\n\n\n\nPassion for using data to support better business decisions."
+  },
+  {
+    "objectID": "index.html#msc-business-analytics-student-data-enthusiast",
+    "href": "index.html#msc-business-analytics-student-data-enthusiast",
+    "title": "Hi, I am Torsa Mukhter",
+    "section": "",
+    "text": "I am an MSc Business Analytics student at Dublin City University with a strong interest in data analytics, machine learning, and business intelligence.\nI enjoy transforming data into meaningful insights using tools such as Python, SQL, and Power BI."
+  },
+  {
+    "objectID": "index.html#what-you-will-find-in-this-portfolio",
+    "href": "index.html#what-you-will-find-in-this-portfolio",
+    "title": "Hi, I am Torsa Mukhter",
+    "section": "",
+    "text": "Learn more about my background, education, and journey into business analytics.\n\n\n\nExplore my work in data analysis, machine learning, and real-world datasets.\n\n\n\nRead about my learning experience, challenges, and growth."
+  },
+  {
+    "objectID": "index.html#key-skills-strengths",
+    "href": "index.html#key-skills-strengths",
+    "title": "Hi, I am Torsa Mukhter",
+    "section": "",
+    "text": "Strong skills in data analysis, reporting, and dashboard creation.\n\n\n\nExperience applying analytical models to real-world datasets.\n\n\n\nBackground in marketing, administration, and sales consulting.\n\n\n\nPassion for using data to support better business decisions."
+  },
+  {
+    "objectID": "Project/index.html",
+    "href": "Project/index.html",
+    "title": "Projects",
+    "section": "",
+    "text": "Welcome to my project portfolio. Here you will find work completed as part of the E-Portfolio and Business Analytics module, showcasing data analysis and visualisation using Python.\n\n\n\n\n\n\n   \n    \n    \n      Order By\n      Default\n      \n        Title\n      \n      \n        Date - Oldest\n      \n      \n        Date - Newest\n      \n    \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\nBERT vs GPT for Sentiment Analysis\n\n\n\nPython\n\nNLP\n\nMachine Learning\n\nBERT\n\nGPT\n\n\n\nComparison of BERT and GPT for customer review sentiment classification using a Women’s E-Commerce dataset — including fine-tuning, zero-shot prompting, and business…\n\n\n\nApr 1, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nFinancial Fraud Victim Analysis\n\n\n\nPython\n\nMachine Learning\n\nEDA\n\nFraud Detection\n\n\n\nEDA and predictive modelling on a financial fraud dataset — outlier detection, normalisation, correlation analysis, and Random Forest modelling to support fraud detection.\n\n\n\nNov 13, 2025\n\n\n\n\n\n\n\n\n\n\n\n\n\nMargins that Matter: AgriFood Global Analysis\n\n\n\nPython\n\nBusiness Analytics\n\nEDA\n\nVisualisation\n\n\n\nBusiness analytics report analysing AgriFood Global’s profitability across regions and product categories, delivering data-driven strategic recommendations.\n\n\n\nNov 13, 2025\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html",
+    "href": "Project/list/agrifood-analysis.html",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1089: Statistical Models and Methods for Business Analytics at Dublin City University, as a group assignment. The goal was to analyse AgriFood Global’s financial performance across 5 regions and 10 product categories from 2015 to 2024, and provide strategic recommendations to senior management.\n\n\n\n\n\n\nNote\n\n\n\nDataset: 500 rows × 19 columns, covering weekly transactions from 2015–2024. Variables include Region, Category, Units Sold, Revenue, Cost, Profit, Net Profit, Discount, and Shipping Cost."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#overview",
+    "href": "Project/list/agrifood-analysis.html#overview",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "",
+    "text": "This project was completed as part of BAA1089: Statistical Models and Methods for Business Analytics at Dublin City University, as a group assignment. The goal was to analyse AgriFood Global’s financial performance across 5 regions and 10 product categories from 2015 to 2024, and provide strategic recommendations to senior management.\n\n\n\n\n\n\nNote\n\n\n\nDataset: 500 rows × 19 columns, covering weekly transactions from 2015–2024. Variables include Region, Category, Units Sold, Revenue, Cost, Profit, Net Profit, Discount, and Shipping Cost."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#business-questions",
+    "href": "Project/list/agrifood-analysis.html#business-questions",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Business Questions",
+    "text": "Business Questions\n\n\n\n\n\nflowchart LR\n    A[AgriFood Global\\n500 transactions\\n2015–2024] --&gt; B[Which regions\\nare most profitable?]\n    A --&gt; C[Which categories\\ndrive net profit?]\n    A --&gt; D[What explains\\nnet losses?]\n    B --&gt; E[Strategic\\nRecommendations]\n    C --&gt; E\n    D --&gt; E"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#data-loading-overview",
+    "href": "Project/list/agrifood-analysis.html#data-loading-overview",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Data Loading & Overview",
+    "text": "Data Loading & Overview\n\n\nCode\nimport pandas as pd\nimport numpy as np\nimport plotly.express as px\nimport plotly.graph_objects as go\nfrom plotly.subplots import make_subplots\nimport warnings\nwarnings.filterwarnings(\"ignore\")\n\ndf = pd.read_excel(\"../../data/powerbi_data_group1_AgriFoods_Global.xlsx\")\ndf[\"Year\"] = pd.to_datetime(df[\"Date\"]).dt.year\n\nprint(f\"Dataset shape: {df.shape}\")\nprint(f\"\\nRegions: {sorted(df['Region'].unique())}\")\nprint(f\"Categories: {sorted(df['Category'].unique())}\")\nprint(f\"Years: {df['Year'].min()} – {df['Year'].max()}\")\nprint(f\"\\nTotal Revenue: €{df['Total_Revenue'].sum()/1e6:.2f}M\")\nprint(f\"Total Net Profit: €{df['Net_Profit'].sum()/1e6:.2f}M\")\n\n\nDataset shape: (500, 20)\n\nRegions: ['Africa', 'Asia', 'Europe', 'North America', 'South America']\nCategories: ['Accessories', 'Agriculture', 'Automotive', 'Construction', 'Education', 'Electronics', 'Energy', 'Finance', 'Healthcare', 'Travel']\nYears: 2015 – 2024\n\nTotal Revenue: €136.10M\nTotal Net Profit: €8.33M"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#overall-financial-performance-20152024",
+    "href": "Project/list/agrifood-analysis.html#overall-financial-performance-20152024",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Overall Financial Performance (2015–2024)",
+    "text": "Overall Financial Performance (2015–2024)\n\n\nCode\nyearly = df.groupby(\"Year\")[[\"Total_Revenue\",\"Total_Cost\",\"Total_Profit\",\"Net_Profit\"]].sum().reset_index()\n\nfig = go.Figure()\ncolors = {\"Total_Revenue\": \"#4C72B0\", \"Total_Cost\": \"#DD8452\",\n          \"Total_Profit\": \"#2ecc71\", \"Net_Profit\": \"#e74c3c\"}\nlabels = {\"Total_Revenue\": \"Total Revenue\", \"Total_Cost\": \"Total Cost\",\n          \"Total_Profit\": \"Total Profit\", \"Net_Profit\": \"Net Profit\"}\n\nfor col in [\"Total_Revenue\", \"Total_Cost\", \"Total_Profit\", \"Net_Profit\"]:\n    fig.add_trace(go.Scatter(\n        x=yearly[\"Year\"], y=yearly[col],\n        name=labels[col],\n        mode=\"lines+markers\",\n        line=dict(color=colors[col], width=2),\n        marker=dict(size=6),\n    ))\n\nfig.update_layout(\n    title=\"AgriFood Global: Financial Performance 2015–2024\",\n    xaxis_title=\"Year\",\n    yaxis_title=\"Amount (€)\",\n    template=\"plotly_white\",\n    height=400,\n    hovermode=\"x unified\",\n)\nfig.show()\n\n\n                            \n                                            \nTotal Revenue, Cost, Profit and Net Profit trends from 2015–2024\n\n\n\n\n\n\n\n\nWarningKey Finding\n\n\n\nRevenue has not increased since 2019 — a concerning trend for the company. Despite declining revenue, net profit has shown some improvement, suggesting cost-cutting rather than growth is driving margins."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#regional-analysis",
+    "href": "Project/list/agrifood-analysis.html#regional-analysis",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Regional Analysis",
+    "text": "Regional Analysis\n\nRevenue and Profit by Region (2015–2024)\n\n\nCode\nregion = df.groupby(\"Region\")[[\"Total_Revenue\", \"Net_Profit\", \"Total_Profit\", \"Shipping_Cost\"]].sum().reset_index()\nregion[\"Gross_Margin_%\"] = (region[\"Total_Profit\"] / region[\"Total_Revenue\"] * 100).round(2)\nregion[\"Net_Margin_%\"] = (region[\"Net_Profit\"] / region[\"Total_Revenue\"] * 100).round(2)\n\nfig = make_subplots(rows=1, cols=2,\n    subplot_titles=[\"% Gross Profit Margin by Region\", \"% Net Profit Margin by Region\"])\n\ncolors_region = px.colors.qualitative.Set2\n\nfig.add_trace(go.Bar(\n    x=region[\"Region\"], y=region[\"Gross_Margin_%\"],\n    marker_color=colors_region[:5],\n    showlegend=False,\n    text=region[\"Gross_Margin_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n), row=1, col=1)\n\nfig.add_trace(go.Bar(\n    x=region[\"Region\"], y=region[\"Net_Margin_%\"],\n    marker_color=colors_region[:5],\n    showlegend=False,\n    text=region[\"Net_Margin_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n), row=1, col=2)\n\nfig.update_layout(template=\"plotly_white\", height=400,\n    title=\"Profit Margins by Region, 2015–2024\")\nfig.show()\n\n\n                            \n                                            \nTotal Revenue and Net Profit by region across all years\n\n\n\n\nRegional Performance Over Time\n\n\nCode\nregion_yearly = df.groupby([\"Year\",\"Region\"])[\"Net_Profit\"].sum().reset_index()\n\nfig = px.line(\n    region_yearly,\n    x=\"Year\", y=\"Net_Profit\",\n    color=\"Region\",\n    title=\"Net Profit by Region, 2015–2024\",\n    markers=True,\n    template=\"plotly_white\",\n    labels={\"Net_Profit\": \"Net Profit (€)\"},\n    color_discrete_sequence=px.colors.qualitative.Set2,\n)\nfig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\", opacity=0.5)\nfig.update_layout(height=400)\nfig.show()\n\n\n                            \n                                            \nNet profit trends by region from 2015–2024\n\n\n\n\nUnits Sold by Region\n\n\nCode\nunits_region = df.groupby([\"Year\",\"Region\"])[\"Units_Sold\"].sum().reset_index()\n\nfig = px.line(\n    units_region,\n    x=\"Year\", y=\"Units_Sold\",\n    color=\"Region\",\n    title=\"Total Units Sold by Region, 2015–2024\",\n    markers=True,\n    template=\"plotly_white\",\n    labels={\"Units_Sold\": \"Units Sold\"},\n    color_discrete_sequence=px.colors.qualitative.Set2,\n)\nfig.update_layout(height=400)\nfig.show()\n\n\n                            \n                                            \nTotal units sold per region per year — showing declining demand\n\n\n\n\n\n\n\n\nImportantRegional Findings\n\n\n\n\nSouth America dominates with 57% of net profit share — the only region with upward-trending revenue\nEurope and Africa recorded net losses (-2.6% and -6.6% respectively)\nUnits sold is declining in all regions except South America"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#category-analysis",
+    "href": "Project/list/agrifood-analysis.html#category-analysis",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Category Analysis",
+    "text": "Category Analysis\n\nProfit Margins by Category (2015–2024)\n\n\nCode\ncat = df.groupby(\"Category\")[[\"Total_Revenue\",\"Total_Profit\",\"Net_Profit\"]].sum().reset_index()\ncat[\"Gross_%\"] = (cat[\"Total_Profit\"] / cat[\"Total_Revenue\"] * 100).round(2)\ncat[\"Net_%\"] = (cat[\"Net_Profit\"] / cat[\"Total_Revenue\"] * 100).round(2)\ncat = cat.sort_values(\"Gross_%\", ascending=False)\n\nfig = go.Figure()\nfig.add_trace(go.Bar(\n    name=\"Gross Profit Margin %\",\n    x=cat[\"Category\"], y=cat[\"Gross_%\"],\n    marker_color=\"#4C72B0\",\n))\nfig.add_trace(go.Bar(\n    name=\"Net Profit Margin %\",\n    x=cat[\"Category\"], y=cat[\"Net_%\"],\n    marker_color=\"#DD8452\",\n))\nfig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\")\nfig.update_layout(\n    barmode=\"group\",\n    title=\"Gross vs Net Profit Margin by Category, 2015–2024\",\n    template=\"plotly_white\",\n    yaxis_title=\"Margin (%)\",\n    height=450,\n)\nfig.show()\n\n\n                            \n                                            \nGross and net profit margins across all 10 product categories\n\n\n\n\nShipping Costs by Region\n\n\nCode\nship = df.groupby([\"Year\",\"Region\"])[\"Shipping_Cost\"].sum().reset_index()\n\nfig = px.bar(\n    ship, x=\"Year\", y=\"Shipping_Cost\",\n    color=\"Region\",\n    title=\"Total Shipping Costs by Region, 2015–2024\",\n    template=\"plotly_white\",\n    labels={\"Shipping_Cost\": \"Shipping Cost (€)\"},\n    color_discrete_sequence=px.colors.qualitative.Set2,\n    barmode=\"stack\",\n)\nfig.update_layout(height=400)\nfig.show()\n\n\n                            \n                                            \nShipping cost trends by region — South America incurs highest costs"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#focus-current-year-performance",
+    "href": "Project/list/agrifood-analysis.html#focus-current-year-performance",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "2024 Focus: Current Year Performance",
+    "text": "2024 Focus: Current Year Performance\n\n\nCode\ndf_2024 = df[df[\"Year\"] == df[\"Year\"].max()]\n\nreg_2024 = df_2024.groupby(\"Region\")[[\"Total_Revenue\",\"Total_Profit\",\"Net_Profit\",\"Units_Sold\",\"Discount\"]].sum().reset_index()\nreg_2024[\"Gross_%\"] = (reg_2024[\"Total_Profit\"] / reg_2024[\"Total_Revenue\"] * 100).round(2)\nreg_2024[\"Net_%\"] = (reg_2024[\"Net_Profit\"] / reg_2024[\"Total_Revenue\"] * 100).round(2)\n\nfig = go.Figure()\nfig.add_trace(go.Bar(\n    x=reg_2024[\"Region\"],\n    y=reg_2024[\"Gross_%\"],\n    name=\"Gross Margin %\",\n    marker_color=\"#4C72B0\",\n    text=reg_2024[\"Gross_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n))\nfig.add_trace(go.Bar(\n    x=reg_2024[\"Region\"],\n    y=reg_2024[\"Net_%\"],\n    name=\"Net Margin %\",\n    marker_color=\"#DD8452\",\n    text=reg_2024[\"Net_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n))\nfig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\")\nfig.update_layout(\n    barmode=\"group\",\n    title=\"Gross vs Net Profit Margin by Region, 2024\",\n    template=\"plotly_white\",\n    height=420,\n)\nfig.show()\n\n\n                            \n                                            \n2024 net profit by region — Asia and North America in loss\n\n\n\nDiscount Impact Analysis\n\n\nCode\ndisc = df_2024.groupby(\"Region\")[[\"Discount\",\"Net_Profit\"]].sum().reset_index()\n\nfig = make_subplots(rows=1, cols=2,\n    subplot_titles=[\"Total Discount Given by Region (2024)\",\n                    \"Net Profit by Region (2024)\"])\n\nfig.add_trace(go.Bar(\n    x=disc[\"Region\"], y=disc[\"Discount\"],\n    marker_color=\"#e74c3c\", showlegend=False,\n    text=disc[\"Discount\"].apply(lambda x: f\"€{x/1000:.0f}K\"),\n    textposition=\"outside\",\n), row=1, col=1)\n\nfig.add_trace(go.Bar(\n    x=disc[\"Region\"], y=disc[\"Net_Profit\"],\n    marker_color=[\"#2ecc71\" if v &gt; 0 else \"#e74c3c\" for v in disc[\"Net_Profit\"]],\n    showlegend=False,\n    text=disc[\"Net_Profit\"].apply(lambda x: f\"€{x/1000:.0f}K\"),\n    textposition=\"outside\",\n), row=1, col=2)\n\nfig.add_hline(y=0, row=1, col=2, line_dash=\"dash\", line_color=\"gray\")\nfig.update_layout(template=\"plotly_white\", height=420,\n    title=\"Discount vs Net Profit by Region, 2024\")\nfig.show()\n\n\n                            \n                                            \nDisproportionate discounts in North America are eroding net profit"
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#key-findings-recommendations",
+    "href": "Project/list/agrifood-analysis.html#key-findings-recommendations",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Key Findings & Recommendations",
+    "text": "Key Findings & Recommendations\n\n\n\n\n\n\n\nFinding\nRecommendation\n\n\n\n\nRevenue declining since 2019\nPrioritise sustainable, gradual growth over volume\n\n\nSouth America drives 57% of net profit\nInvest in regional distribution hub to reduce shipping costs\n\n\nEurope & Africa in net loss\nImprove cost management and pricing strategy\n\n\nExcessive discounts in North America\nRevise discount policy — especially for Travel category\n\n\nEnergy sector: 66% net margin in 2024\nScale Energy operations in South America\n\n\nPost-Covid decline in North America Travel\nInvestigate South America’s recovery model\n\n\n\n\n\n\n\n\n\nTipStrategic Priority\n\n\n\nSouth America’s Energy sector generated €576K net profit in 2024 alone — nearly double that of Finance. This is the highest-return segment and should be the primary focus for investment and scaling."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#reflection",
+    "href": "Project/list/agrifood-analysis.html#reflection",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Reflection",
+    "text": "Reflection\nThis was my first experience working with a real business dataset in a group setting. The most challenging aspect was translating raw financial data into clear, actionable insights for a non-technical audience. I also learned how important it is to look beyond headline metrics — Europe appeared to be the best-performing region in 2024 based on gross margin, but deeper analysis revealed South America’s superior performance when volume was accounted for. Working as a team also taught me the value of dividing analytical tasks logically and integrating findings into a coherent narrative."
+  },
+  {
+    "objectID": "Project/list/nlp-sentiment.html#methodology",
+    "href": "Project/list/nlp-sentiment.html#methodology",
+    "title": "BERT vs GPT for Sentiment Analysis",
+    "section": "Methodology",
+    "text": "Methodology\nThe workflow followed a structured analytics pipeline:\n\nProblem Definition\nIdentify the need for automated sentiment classification at scale.\nData Preparation\nClean and preprocess review text, handle missing values, and create sentiment labels.\nExploratory Analysis\nAnalyse rating distribution, review length, and department-level patterns.\nModel Implementation\n\nFine-tuned BERT on labelled data\n\nApplied GPT using zero-shot prompting\n\nEvaluation\nCompared models using accuracy, precision, recall, and F1-score. ## Key Findings\n\n\n\n\n\n\n\nImportantResults Summary\n\n\n\n\nBERT outperformed GPT across all metrics (F1: 0.91 vs 0.85)\nBERT’s fine-tuning on domain-specific data gave it a significant edge\nGPT’s zero-shot approach is more flexible but less precise on specialised tasks\nNegative reviews tend to be longer — customers write more when dissatisfied\nDresses had the highest review volume; Jackets had the highest negative ratio"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#business-problem",
+    "href": "Project/list/fraud-analysis.html#business-problem",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Business Problem",
+    "text": "Business Problem\nFinancial fraud represents a significant risk for financial institutions, leading to substantial financial losses and reputational damage.\nThe key question addressed in this project is:\n\nHow can transaction and customer data be used to identify patterns of fraudulent behaviour and improve fraud detection?\n\nTraditional rule-based systems are often insufficient, making it necessary to apply data-driven and machine learning approaches to detect suspicious activity more effectively."
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#methodology",
+    "href": "Project/list/fraud-analysis.html#methodology",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Methodology",
+    "text": "Methodology\nThe project follows a structured analytics workflow:\n\nProblem Definition\nIdentify the need to detect fraudulent transactions using data.\nData Preparation\nHandle missing values, detect outliers, and apply normalisation.\nExploratory Data Analysis\nAnalyse distributions, variability, and correlations across variables.\nFraud Pattern Analysis\nExamine fraud occurrence by transaction type and device type.\nModel Implementation\nApply Random Forest models for classification and regression.\nEvaluation\nAssess model performance using confusion matrix and feature importance."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#methodology",
+    "href": "Project/list/agrifood-analysis.html#methodology",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Methodology",
+    "text": "Methodology\nThe analysis followed a structured business analytics approach:\n\nProblem Definition\nIdentify key drivers of profitability across regions and product categories.\nData Preparation\nCleaned and structured the dataset, extracted time-based variables, and ensured consistency across financial metrics.\nExploratory Analysis\nAnalysed trends in revenue, cost, profit, and net profit over time.\nComparative Analysis\nCompared performance across regions and product categories to identify top and underperforming areas.\nVisualisation\nUsed interactive Plotly charts to highlight patterns and trends.\nInsight Generation\nTranslated analytical findings into strategic business recommendations."
+  },
+  {
+    "objectID": "Project/list/agrifood-analysis.html#conclusion",
+    "href": "Project/list/agrifood-analysis.html#conclusion",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Conclusion",
+    "text": "Conclusion\nThis project provided a comprehensive analysis of AgriFood Global’s financial performance across regions and product categories. The findings revealed that profitability is highly concentrated in specific regions, particularly South America, while other regions require strategic improvements.\nThe analysis also highlighted that revenue growth alone does not guarantee profitability, as factors such as cost management, discounts, and shipping expenses significantly impact net profit.\nFrom a business perspective, focusing on high-margin regions and categories, while improving efficiency in underperforming areas, can lead to more sustainable and profitable growth. This project demonstrates the value of data-driven decision-making in guiding strategic business actions."
+  },
+  {
+    "objectID": "reflection.html",
+    "href": "reflection.html",
+    "title": "Reflection",
+    "section": "",
+    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
+  },
+  {
+    "objectID": "reflection.html#reflection",
+    "href": "reflection.html#reflection",
+    "title": "Reflection",
+    "section": "",
+    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
+  },
+  {
+    "objectID": "reflection.html#skills-developed",
+    "href": "reflection.html#skills-developed",
+    "title": "Reflection",
+    "section": "Skills Developed",
+    "text": "Skills Developed\n\n📌 Portfolio & Quarto Development\n\nLearned how to build a complete website using Quarto\nStructured pages for consistency across projects\nIntegrated Python code, visuals, and explanations\n\n\n\n📊 Communication Skills\n\nDeveloped ability to present analytical findings clearly\nImproved writing for both technical and non-technical audiences\nFocused on storytelling, not just analysis"
+  },
+  {
+    "objectID": "reflection.html#challenges-and-solutions",
+    "href": "reflection.html#challenges-and-solutions",
+    "title": "Reflection",
+    "section": "Challenges and Solutions",
+    "text": "Challenges and Solutions\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Maintaining a consistent layout across all project pages\nSolution: Created a repeatable structure (Overview → Analysis → Findings → Reflection)\n\n\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Combining code, visuals, and explanations\nSolution: Practised structuring content into clear sections and improving readability"
+  },
+  {
+    "objectID": "reflection.html#key-learnings",
+    "href": "reflection.html#key-learnings",
+    "title": "Reflection",
+    "section": "Key Learnings",
+    "text": "Key Learnings\n\n\n\n\n\n\nImportant\n\n\n\n\nPresenting work is just as important as doing the analysis\n\nA well-designed portfolio improves clarity and impact\n\nCommunication is a core skill in business analytics\n\n\n\n\nThe module also included several guest speakers, whose insights were extremely valuable. Engaging with them helped me understand how analytical skills are applied in real-world business environments and what employers expect from graduates."
+  },
+  {
+    "objectID": "reflection.html#future-development",
+    "href": "reflection.html#future-development",
+    "title": "Reflection",
+    "section": "Future Development",
+    "text": "Future Development\n\nImprove visual design and interactivity (e.g. dashboards)\nContinue developing data storytelling skills\nStrengthen ability to translate analysis into business insights"
+  },
+  {
+    "objectID": "reflection.html#conclusion",
+    "href": "reflection.html#conclusion",
+    "title": "Reflection",
+    "section": "Conclusion",
+    "text": "Conclusion\n\n\n\n\n\n\nNote\n\n\n\nOverall, the BAA1104 E-Portfolio and Business Analytics Challenges module has been highly valuable in preparing me to present my work professionally. It has strengthened both my communication and analytical presentation skills, providing a strong foundation for future career development."
+  },
+  {
+    "objectID": "contact.html",
+    "href": "contact.html",
+    "title": "Contact",
+    "section": "",
+    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
+  },
+  {
+    "objectID": "contact.html#contact",
+    "href": "contact.html#contact",
+    "title": "Contact",
+    "section": "",
+    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
+  },
+  {
+    "objectID": "contact.html#references",
+    "href": "contact.html#references",
+    "title": "Contact",
+    "section": "References",
+    "text": "References\nProfessional references are available upon request."
+  }
+]

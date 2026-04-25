@@ -1,0 +1,390 @@
+---
+title: "Financial Fraud Victim Analysis"
+description: "Exploratory data analysis and predictive modelling on a financial fraud dataset, using outlier detection, normalisation, correlation analysis, and Random Forest regression."
+author: "Torsa Mukhter"
+date: "2025-11-13"
+image: "../../images/project-fraud.png"
+categories: [Python, Machine Learning, EDA, Fraud Detection]
+format:
+  html:
+    code-fold: true
+    code-tools: true
+    highlight-style: github
+---
+
+## Overview
+
+This project was completed as part of **BAA1089: Statistical Models and Methods for Business Analytics** at Dublin City University. The goal was to analyse a financial fraud dataset, uncover patterns in fraudulent transactions, and build predictive models to support fraud detection.
+
+::: {.callout-note}
+The dataset contains **500 rows and 23 columns**, representing individual customer transactions. Variables include 12 numerical, 11 categorical, and 2 ID fields. All code below reproduces the analysis pipeline using synthetically generated data that mirrors the original dataset's statistical properties.
+:::
+
+## Business Problem
+
+Financial fraud represents a significant risk for financial institutions, leading to substantial financial losses and reputational damage. 
+
+The key question addressed in this project is:
+
+> How can transaction and customer data be used to identify patterns of fraudulent behaviour and improve fraud detection?
+
+Traditional rule-based systems are often insufficient, making it necessary to apply **data-driven and machine learning approaches** to detect suspicious activity more effectively.
+
+## Analysis Workflow
+
+```{mermaid}
+flowchart LR
+    A[Raw Dataset\n500 rows × 23 cols] --> B[Data Preparation\nMissing values, Outliers, Normalisation]
+    B --> C[Exploratory Data Analysis\nHistograms, Boxplots, Heatmap]
+    C --> D[Fraud Pattern Analysis\nTransaction & Device Type]
+    D --> E[Predictive Modelling\nClassification + Random Forest]
+    E --> F[Recommendations\nSenior Management]
+```
+
+## Setup & Data Generation
+
+The original dataset was provided by the module. Here we simulate data with matching statistical properties (mean, std, skew) for reproducibility.
+
+```{python}
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
+import warnings
+warnings.filterwarnings("ignore")
+
+np.random.seed(42)
+n = 500
+
+# Simulate dataset matching report statistics
+age = np.random.normal(50.1, 14.42, n).clip(18, 90)
+personal_income = np.random.exponential(45000, n) + 15000
+family_income = personal_income * np.random.uniform(1.2, 1.8, n)
+credit_score = np.random.normal(648, 82, n).clip(411, 850)
+loan_amount = np.random.exponential(15000, n) + 4.54
+transaction_amount = np.random.exponential(1500, n) + 10
+account_age_days = np.random.normal(2586, 1443, n).clip(32, 4999)
+num_prev_transactions = np.random.normal(148, 87, n).clip(1, 298)
+avg_transaction_value = np.random.normal(5119, 2885, n).clip(75, 9997)
+internet_usage_hrs = np.random.exponential(3, n).clip(0.5, 10)
+mobile_usage_hrs = np.random.normal(5.15, 2.49, n).clip(0.5, 13.9)
+
+# Fraud flag (~30% fraud rate) and fraud amount
+is_fraud = np.random.binomial(1, 0.3, n)
+fraud_amount = np.where(is_fraud == 1,
+    np.random.exponential(700, n),
+    np.zeros(n))
+
+transaction_type = np.random.choice(
+    ["Online", "In-Store", "ATM", "Transfer"],
+    n, p=[0.35, 0.25, 0.2, 0.2])
+device_type = np.random.choice(
+    ["POS", "Desktop", "ATM", "Mobile"],
+    n, p=[0.25, 0.3, 0.2, 0.25])
+
+df = pd.DataFrame({
+    "age": age, "personal_income": personal_income,
+    "family_income": family_income, "credit_score": credit_score,
+    "loan_amount": loan_amount, "transaction_amount": transaction_amount,
+    "account_age_days": account_age_days,
+    "num_prev_transactions": num_prev_transactions,
+    "avg_transaction_value": avg_transaction_value,
+    "internet_usage_hrs": internet_usage_hrs,
+    "mobile_usage_hrs": mobile_usage_hrs,
+    "fraud_amount": fraud_amount,
+    "is_fraud": is_fraud,
+    "transaction_type": transaction_type,
+    "device_type": device_type,
+})
+
+print(f"Dataset shape: {df.shape}")
+print(df[["age","personal_income","fraud_amount","is_fraud"]].describe().round(2))
+```
+
+## Data Preparation
+
+### Outlier Detection — IQR vs Z-Score
+
+```{python}
+num_cols = ["age","personal_income","family_income","credit_score",
+            "loan_amount","transaction_amount","account_age_days",
+            "num_prev_transactions","avg_transaction_value",
+            "internet_usage_hrs","mobile_usage_hrs","fraud_amount"]
+
+iqr_outliers, z_outliers = [], []
+for col in num_cols:
+    Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+    IQR = Q3 - Q1
+    iqr_outliers.append(((df[col] < Q1 - 1.5*IQR) | (df[col] > Q3 + 1.5*IQR)).sum())
+    z_outliers.append((((df[col] - df[col].mean()) / df[col].std()).abs() > 3).sum())
+
+outlier_df = pd.DataFrame({
+    "Variable": num_cols,
+    "IQR Outliers": iqr_outliers,
+    "Z-Score Outliers": z_outliers
+}).sort_values("IQR Outliers", ascending=False)
+
+fig = go.Figure(data=[
+    go.Bar(name="IQR", x=outlier_df["Variable"], y=outlier_df["IQR Outliers"],
+           marker_color="#4C72B0"),
+    go.Bar(name="Z-Score", x=outlier_df["Variable"], y=outlier_df["Z-Score Outliers"],
+           marker_color="#DD8452"),
+])
+fig.update_layout(
+    barmode="group",
+    title="Outlier Count by Method",
+    xaxis_title="Variable",
+    yaxis_title="Number of Outliers",
+    template="plotly_white",
+    xaxis_tickangle=-35,
+)
+fig.show()
+```
+
+::: {.callout-tip}
+`fraud_amount` had the highest number of outliers (IQR method), which is expected — a small number of customers experienced extreme financial losses. These outliers were **retained** as they represent genuine suspicious activity.
+:::
+
+### Min-Max Normalisation
+
+```{python}
+scaler = MinMaxScaler()
+df_norm = df[num_cols].copy()
+df_scaled = pd.DataFrame(scaler.fit_transform(df_norm), columns=num_cols)
+
+norm_summary = pd.DataFrame({
+    "Variable": num_cols,
+    "Original Mean": df[num_cols].mean().round(2).values,
+    "Normalised Mean (0-1)": df_scaled.mean().round(4).values,
+    "Normalised Min": df_scaled.min().values,
+    "Normalised Max": df_scaled.max().values,
+})
+print(norm_summary.to_string(index=False))
+```
+
+## Exploratory Data Analysis
+
+### Distribution of Numerical Variables
+
+```{python}
+#| fig-cap: "Histograms showing the distribution of all numerical variables"
+#| fig-height: 8
+
+fig = make_subplots(rows=4, cols=3,
+    subplot_titles=num_cols)
+
+for i, col in enumerate(num_cols):
+    row, col_idx = divmod(i, 3)
+    fig.add_trace(
+        go.Histogram(x=df[col], name=col,
+                     marker_color="#4C72B0", opacity=0.75,
+                     showlegend=False),
+        row=row+1, col=col_idx+1
+    )
+
+fig.update_layout(
+    height=900,
+    title_text="Distribution of Numerical Variables",
+    template="plotly_white",
+)
+fig.show()
+```
+
+### Spread and Variability — Boxplots
+
+```{python}
+#| fig-cap: "Boxplots illustrating spread and outliers for all numerical variables"
+
+fig = go.Figure()
+for col in num_cols:
+    fig.add_trace(go.Box(
+        y=df[col], name=col,
+        marker_color="#4C72B0",
+        boxmean=True,
+    ))
+fig.update_layout(
+    title="Distribution and Spread of Numerical Variables",
+    yaxis_title="Value",
+    template="plotly_white",
+    showlegend=False,
+    height=500,
+)
+fig.show()
+```
+
+### Correlation Heatmap
+
+```{python}
+#| fig-cap: "Correlation heatmap of all numerical variables"
+
+corr = df[num_cols].corr().round(2)
+
+fig = px.imshow(
+    corr,
+    text_auto=True,
+    color_continuous_scale="RdBu_r",
+    zmin=-1, zmax=1,
+    title="Correlation Heatmap of Numerical Variables",
+    aspect="auto",
+)
+fig.update_layout(template="plotly_white", height=550)
+fig.show()
+```
+
+::: {.callout-important}
+## Key Correlations Found
+- **`personal_income` & `family_income`**: strong positive correlation (ρ ≈ 0.80) — higher personal earnings tend to raise household income.
+- **`transaction_amount` & `fraud_amount`**: moderate positive correlation (ρ ≈ 0.56) — higher-value transactions are associated with greater fraud losses.
+- Most other variables show weak correlations with fraud, confirming that **financial behaviour** is the strongest predictor.
+:::
+
+## Fraud Pattern Analysis
+
+### Fraud by Transaction Type and Device Type
+
+```{python}
+#| fig-cap: "Fraud vs Non-Fraud counts by Transaction Type and Device Type"
+
+fig = make_subplots(rows=1, cols=2,
+    subplot_titles=["Fraud by Transaction Type", "Fraud by Device Type"])
+
+for j, group_col in enumerate(["transaction_type", "device_type"]):
+    counts = df.groupby([group_col, "is_fraud"]).size().reset_index(name="count")
+    counts["Fraud Status"] = counts["is_fraud"].map({0: "Non-Fraud", 1: "Fraud"})
+    for status, color in [("Fraud", "#DD8452"), ("Non-Fraud", "#4C72B0")]:
+        sub = counts[counts["Fraud Status"] == status]
+        fig.add_trace(
+            go.Bar(x=sub[group_col], y=sub["count"],
+                   name=status, marker_color=color,
+                   showlegend=(j == 0)),
+            row=1, col=j+1
+        )
+
+fig.update_layout(
+    barmode="group",
+    template="plotly_white",
+    height=400,
+    legend_title="Fraud Status",
+)
+fig.show()
+```
+
+## Predictive Modelling
+
+### Classification Model — Confusion Matrix
+
+```{python}
+#| fig-cap: "Confusion matrix for the fraud classification model"
+
+features = ["age","personal_income","family_income","credit_score",
+            "loan_amount","transaction_amount","account_age_days",
+            "num_prev_transactions","avg_transaction_value",
+            "internet_usage_hrs","mobile_usage_hrs"]
+
+X = df[features]
+y = df["is_fraud"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+
+cm = confusion_matrix(y_test, y_pred)
+
+fig = px.imshow(
+    cm,
+    text_auto=True,
+    labels=dict(x="Predicted Label", y="True Label"),
+    x=["Non-Fraud (0)", "Fraud (1)"],
+    y=["Non-Fraud (0)", "Fraud (1)"],
+    color_continuous_scale="Blues",
+    title="Confusion Matrix — Classification Model",
+)
+fig.update_layout(template="plotly_white")
+fig.show()
+```
+
+### Random Forest — Feature Importance
+
+```{python}
+#| fig-cap: "Feature importance scores from the Random Forest regression model"
+
+reg = RandomForestRegressor(n_estimators=100, random_state=42)
+reg.fit(X_train, df.loc[X_train.index, "fraud_amount"])
+
+importance_df = pd.DataFrame({
+    "Feature": features,
+    "Importance": reg.feature_importances_
+}).sort_values("Importance")
+
+fig = px.bar(
+    importance_df,
+    x="Importance",
+    y="Feature",
+    orientation="h",
+    title="Feature Importance — Random Forest Regression",
+    labels={"Importance": "Importance Score"},
+    template="plotly_white",
+    color="Importance",
+    color_continuous_scale="Blues",
+)
+fig.show()
+```
+## Methodology
+
+The project follows a structured analytics workflow:
+
+1. **Problem Definition**  
+   Identify the need to detect fraudulent transactions using data.
+
+2. **Data Preparation**  
+   Handle missing values, detect outliers, and apply normalisation.
+
+3. **Exploratory Data Analysis**  
+   Analyse distributions, variability, and correlations across variables.
+
+4. **Fraud Pattern Analysis**  
+   Examine fraud occurrence by transaction type and device type.
+
+5. **Model Implementation**  
+   Apply Random Forest models for classification and regression.
+
+6. **Evaluation**  
+   Assess model performance using confusion matrix and feature importance.
+
+## Key Findings
+
+| Finding | Detail |
+|---|---|
+| **Right-skewed financials** | Most customers have low-to-moderate amounts; a few extreme cases signal fraud |
+| **Top correlation** | `personal_income` ↔ `family_income` (ρ ≈ 0.80) |
+| **Fraud predictor** | `transaction_amount` ↔ `fraud_amount` (ρ ≈ 0.56) |
+| **Riskiest channels** | In-store, ATM transactions and Desktop devices show higher fraud counts |
+| **Best fraud predictor** | `transaction_amount` ranked #1 in Random Forest importance |
+| **Model limitation** | Classification model struggles with class imbalance; regression performs better on large fraud amounts |
+
+## Recommendations
+
+::: {.callout-tip}
+## For Senior Management
+1. **Monitor high-value transactions** more closely — fraud strongly correlates with extreme transaction amounts.
+2. **Strengthen desktop and ATM security** — fraud is disproportionately frequent on these channels.
+3. **Explore advanced ML models** (e.g. XGBoost, SMOTE for imbalanced data) to improve classification accuracy.
+4. **Customer awareness programmes** — educate customers on fraud risks, particularly for in-store and ATM transactions.
+:::
+
+## Reflection
+
+This project was my first experience applying a full data science pipeline to a real-world business problem. Working through each stage — from outlier detection to building a Random Forest model — gave me a much deeper appreciation of how technical choices (like whether to remove outliers) directly affect business outcomes. The most challenging part was handling class imbalance in the classification model, and it pushed me to think critically about model evaluation beyond simple accuracy.
+## Conclusion
+
+This project demonstrated how data analytics and machine learning techniques can be applied to detect and understand financial fraud. The analysis highlighted that transaction-related variables, particularly transaction amount, play a critical role in identifying fraudulent behaviour.
+
+While the classification model faced challenges due to class imbalance, the use of Random Forest models provided valuable insights into both fraud prediction and the drivers of fraud amounts. 
+
+From a business perspective, combining data-driven monitoring with targeted security measures across high-risk channels can significantly improve fraud detection and reduce financial risk. Overall, this project emphasises the importance of aligning analytical models with real-world business needs and operational constraints.

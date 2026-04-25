@@ -1,0 +1,23 @@
+- title: "Financial Fraud Victim Analysis"
+  description: "EDA and predictive modelling on a financial fraud dataset — outlier detection, normalisation, correlation analysis, and Random Forest modelling to support fraud detection."
+  author: "Torsa Mukhter"
+  date: "2025-11-13"
+  image: "../images/project-fraud.png"
+  categories: [Python, Machine Learning, EDA, Fraud Detection]
+  path: list/fraud-analysis.qmd
+
+- title: "BERT vs GPT for Sentiment Analysis"
+  description: "Comparison of BERT and GPT for customer review sentiment classification using a Women's E-Commerce dataset — including fine-tuning, zero-shot prompting, and business insights."
+  author: "Torsa Mukhter"
+  date: "2026-04-01"
+  image: "../images/project-nlp.png"
+  categories: [Python, NLP, Machine Learning, BERT, GPT]
+  path: list/nlp-sentiment.qmd
+
+- title: "Margins that Matter: AgriFood Global Analysis"
+  description: "Business analytics report analysing AgriFood Global’s profitability across regions and product categories, delivering data-driven strategic recommendations."
+  author: "Torsa Mukhter"
+  date: "2025-11-13"
+  image: "../images/project-agrifood.png"
+  categories: [Python, Business Analytics, EDA, Visualisation]
+  path: list/agrifood-analysis.qmd

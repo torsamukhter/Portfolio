@@ -1,0 +1,58 @@
+---
+title: "Contact"
+toc: false
+---
+
+## Contact
+
+Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.
+
+::: {.contact-grid}
+
+::: {.contact-card}
+
+<div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
+
+### Email
+
+If you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.
+
+[Email me via Gmail](https://mail.google.com/mail/?view=cm&fs=1&to=torsamukhter10@gmail.com&su=Contact%20from%20Portfolio&body=Hi%20Torsa,){target="_blank"}
+
+:::
+
+::: {.contact-card}
+
+<div class="contact-icon"><i class="fa-brands fa-linkedin"></i></div>
+
+### LinkedIn
+
+Connect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.
+
+[View my LinkedIn profile](https://www.linkedin.com/in/torsa-mukhter-5b06781aa/){target="_blank"}
+
+:::
+
+::: {.contact-card}
+
+<div class="contact-icon"><i class="fa-brands fa-github"></i></div>
+
+### GitHub
+
+Explore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.
+
+[View my GitHub profile](https://github.com/torsamukhter){target="_blank"}
+
+:::
+
+:::
+
+---
+
+::: {.reference-box}
+
+## References
+
+Professional references are available upon request.
+
+:::

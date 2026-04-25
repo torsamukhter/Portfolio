@@ -1,0 +1,76 @@
+---
+title: ""
+about:
+  template: jolla
+  image: images/profile.jpg
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/torsa-mukhter-5b06781aa/
+    - icon: github
+      text: GitHub
+      href: https://github.com/torsamukhter
+    - icon: envelope
+      text: Email
+      href: "mailto:torsamukhter10@gmail.com?subject=Contact%20from%20Portfolio&body=Hi%20Torsa"
+---
+
+
+# Hi, I am Torsa Mukhter
+
+## MSc Business Analytics Student | Data Enthusiast
+
+I am an **MSc Business Analytics student at Dublin City University** with a strong interest in **data analytics, machine learning, and business intelligence**.
+
+I enjoy transforming data into meaningful insights using tools such as **Python, SQL, and Power BI**.
+
+---
+
+## What You Will Find in This Portfolio
+
+::: {.portfolio-grid}
+
+::: {.portfolio-card}
+### [About Me](about.html)  
+Learn more about my background, education, and journey into business analytics.
+:::
+
+::: {.portfolio-card}
+### [Projects](Project/index.html)  
+Explore my work in data analysis, machine learning, and real-world datasets.
+:::
+
+::: {.portfolio-card}
+### [Reflection](reflection.html)  
+Read about my learning experience, challenges, and growth.
+:::
+
+:::
+
+---
+
+## Key Skills & Strengths
+
+::: {.highlight-grid}
+
+::: {.highlight-card}
+### 🐍 Python, SQL & Power BI  
+Strong skills in data analysis, reporting, and dashboard creation.
+:::
+
+::: {.highlight-card}
+### 🤖 Machine Learning & NLP  
+Experience applying analytical models to real-world datasets.
+:::
+
+::: {.highlight-card}
+### 💼 Business Background  
+Background in marketing, administration, and sales consulting.
+:::
+
+::: {.highlight-card}
+### 📊 Data-Driven Thinking  
+Passion for using data to support better business decisions.
+:::
+
+:::

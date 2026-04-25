@@ -1,0 +1,15 @@
+---
+title: "Projects"
+listing:
+  contents: 
+    - projects.yml
+  type: grid
+  sort: "date desc"
+  categories: true
+  sort-ui: true
+  filter-ui: true
+  fields: [image, title, description, date, categories]
+page-layout: full
+---
+
+Welcome to my project portfolio. Here you will find work completed as part of the **E-Portfolio and Business Analytics** module, showcasing data analysis and visualisation using Python.

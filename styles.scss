@@ -1,0 +1,311 @@
+/*-- scss:defaults --*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+$font-family-sans-serif: "Inter", sans-serif;
+$link-color: #7c3aed;
+
+/*-- scss:rules --*/
+
+body {
+  font-family: "Inter", sans-serif;
+  line-height: 1.7;
+  background-color: #f9fafb;
+  color: #222222;
+}
+
+/* ===== HEADINGS ===== */
+
+h1 {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+footer {
+  font-size: 0.95rem;
+}
+
+/* ===== GLOBAL FIXES ===== */
+
+#title-block-header,
+#TOC,
+.quarto-listing-category,
+.quarto-listing-category-title {
+  display: none !important;
+}
+
+.page-columns .content {
+  grid-column: body-start / body-end;
+}
+
+/* ===== HOME (JOLLA) ===== */
+
+.quarto-about-jolla {
+  max-width: 900px;
+  margin: 0.8rem auto 2rem auto;
+  text-align: center;
+}
+
+.quarto-about-jolla img {
+  width: 270px;
+  height: 270px;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 50%;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+}
+
+.quarto-about-jolla h1.title {
+  display: none;
+}
+
+.quarto-about-jolla h1:not(.title) {
+  font-size: 2.9rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.1rem;
+  letter-spacing: -0.04em;
+}
+
+.quarto-about-jolla h2 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 1.4rem;
+  border-bottom: none;
+}
+
+/* ===== SHARED CARD STYLE ===== */
+
+.portfolio-card,
+.highlight-card,
+.workflow-step,
+.language-card,
+.contact-card,
+.quarto-listing .card {
+  background: #ffffff;
+  border: 1px solid #f1f1f1;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  transition: all 0.25s ease;
+}
+
+.portfolio-card:hover,
+.highlight-card:hover,
+.workflow-step:hover,
+.language-card:hover,
+.contact-card:hover,
+.quarto-listing .card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.1);
+}
+
+/* ===== HOME CARDS ===== */
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8rem;
+}
+
+.highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.8rem;
+}
+
+.portfolio-card,
+.highlight-card {
+  padding: 1.6rem;
+}
+
+.portfolio-card h3 {
+  font-size: 1.2rem;
+}
+
+.highlight-card h3 {
+  font-size: 1.1rem;
+}
+
+.portfolio-card p,
+.highlight-card p {
+  color: #555555;
+}
+
+/* ===== ABOUT: WORKFLOW ===== */
+
+.workflow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.workflow-step {
+  padding: 1.4rem;
+  min-height: 220px;
+}
+
+.workflow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #7c3aed;
+}
+
+/* ===== LANGUAGES ===== */
+
+.language-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.4rem;
+}
+
+.language-card {
+  padding: 1rem;
+  text-align: center;
+}
+
+/* ===== PROJECT LISTING ===== */
+
+.quarto-listing-container {
+  max-width: 1000px;
+}
+
+.quarto-listing {
+  gap: 2rem;
+}
+
+.quarto-listing .card-img-top {
+  height: 190px;
+  object-fit: cover;
+}
+
+.quarto-listing .card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.quarto-listing .card-text {
+  font-size: 0.95rem;
+  color: #555555;
+  min-height: 90px;
+}
+
+.quarto-listing .card-footer {
+  display: none;
+}
+
+/* ===== CONTACT PAGE ===== */
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8rem;
+  margin-top: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.contact-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2rem;
+  min-height: 230px;
+  border: 1px solid #f1f1f1;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+  transition: all 0.25s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 38px rgba(0,0,0,0.12);
+}
+
+.contact-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f3eefe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.contact-card h3 {
+  margin-top: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.contact-card p {
+  color: #555555;
+  font-size: 0.95rem;
+}
+
+.contact-card a {
+  text-decoration: none;
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.reference-box {
+  background: linear-gradient(135deg, #ffffff, #f3eefe);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-top: 2rem;
+  border: 1px solid #eee7ff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+}
+
+.reference-box h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 800px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.contact-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: #7c3aed;
+}
+/* ===== CONTACT ALIGNMENT FIX ===== */
+
+.contact-grid {
+  align-items: stretch;
+}
+
+.contact-card {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-card p {
+  flex-grow: 1;
+}
+
+.contact-card a {
+  margin-top: auto;
+}

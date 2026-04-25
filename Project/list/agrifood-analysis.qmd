@@ -1,0 +1,353 @@
+---
+title: "Margins that Matter: AgriFood Global Analysis"
+description: "A comprehensive business analytics report examining AgriFood Global's profit generators across 5 regions and 10 product categories from 2015–2024, using Python and Plotly."
+author: "Torsa Mukhter, Muireann Ryle, Serena Emedeke, Ariane Damian"
+date: "2025-11-13"
+image: "../../images/project-agrifood.png"
+categories: [Python, Business Analytics, EDA, Power BI, Visualisation]
+format:
+  html:
+    code-fold: true
+    code-tools: true
+    highlight-style: github
+---
+
+## Overview
+
+This project was completed as part of **BAA1089: Statistical Models and Methods for Business Analytics** at Dublin City University, as a group assignment. The goal was to analyse **AgriFood Global's** financial performance across **5 regions** and **10 product categories** from 2015 to 2024, and provide strategic recommendations to senior management.
+
+::: {.callout-note}
+**Dataset**: 500 rows × 19 columns, covering weekly transactions from 2015–2024. Variables include Region, Category, Units Sold, Revenue, Cost, Profit, Net Profit, Discount, and Shipping Cost.
+:::
+
+## Business Questions
+
+```{mermaid}
+flowchart LR
+    A[AgriFood Global\n500 transactions\n2015–2024] --> B[Which regions\nare most profitable?]
+    A --> C[Which categories\ndrive net profit?]
+    A --> D[What explains\nnet losses?]
+    B --> E[Strategic\nRecommendations]
+    C --> E
+    D --> E
+```
+
+## Data Loading & Overview
+
+```{python}
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import warnings
+warnings.filterwarnings("ignore")
+
+df = pd.read_excel("../../data/powerbi_data_group1_AgriFoods_Global.xlsx")
+df["Year"] = pd.to_datetime(df["Date"]).dt.year
+
+print(f"Dataset shape: {df.shape}")
+print(f"\nRegions: {sorted(df['Region'].unique())}")
+print(f"Categories: {sorted(df['Category'].unique())}")
+print(f"Years: {df['Year'].min()} – {df['Year'].max()}")
+print(f"\nTotal Revenue: €{df['Total_Revenue'].sum()/1e6:.2f}M")
+print(f"Total Net Profit: €{df['Net_Profit'].sum()/1e6:.2f}M")
+```
+
+## Overall Financial Performance (2015–2024)
+
+```{python}
+#| fig-cap: "Total Revenue, Cost, Profit and Net Profit trends from 2015–2024"
+
+yearly = df.groupby("Year")[["Total_Revenue","Total_Cost","Total_Profit","Net_Profit"]].sum().reset_index()
+
+fig = go.Figure()
+colors = {"Total_Revenue": "#4C72B0", "Total_Cost": "#DD8452",
+          "Total_Profit": "#2ecc71", "Net_Profit": "#e74c3c"}
+labels = {"Total_Revenue": "Total Revenue", "Total_Cost": "Total Cost",
+          "Total_Profit": "Total Profit", "Net_Profit": "Net Profit"}
+
+for col in ["Total_Revenue", "Total_Cost", "Total_Profit", "Net_Profit"]:
+    fig.add_trace(go.Scatter(
+        x=yearly["Year"], y=yearly[col],
+        name=labels[col],
+        mode="lines+markers",
+        line=dict(color=colors[col], width=2),
+        marker=dict(size=6),
+    ))
+
+fig.update_layout(
+    title="AgriFood Global: Financial Performance 2015–2024",
+    xaxis_title="Year",
+    yaxis_title="Amount (€)",
+    template="plotly_white",
+    height=400,
+    hovermode="x unified",
+)
+fig.show()
+```
+
+::: {.callout-warning}
+## Key Finding
+Revenue has not increased since **2019** — a concerning trend for the company. Despite declining revenue, net profit has shown some improvement, suggesting cost-cutting rather than growth is driving margins.
+:::
+
+## Regional Analysis
+
+### Revenue and Profit by Region (2015–2024)
+
+```{python}
+#| fig-cap: "Total Revenue and Net Profit by region across all years"
+
+region = df.groupby("Region")[["Total_Revenue", "Net_Profit", "Total_Profit", "Shipping_Cost"]].sum().reset_index()
+region["Gross_Margin_%"] = (region["Total_Profit"] / region["Total_Revenue"] * 100).round(2)
+region["Net_Margin_%"] = (region["Net_Profit"] / region["Total_Revenue"] * 100).round(2)
+
+fig = make_subplots(rows=1, cols=2,
+    subplot_titles=["% Gross Profit Margin by Region", "% Net Profit Margin by Region"])
+
+colors_region = px.colors.qualitative.Set2
+
+fig.add_trace(go.Bar(
+    x=region["Region"], y=region["Gross_Margin_%"],
+    marker_color=colors_region[:5],
+    showlegend=False,
+    text=region["Gross_Margin_%"].apply(lambda x: f"{x:.1f}%"),
+    textposition="outside",
+), row=1, col=1)
+
+fig.add_trace(go.Bar(
+    x=region["Region"], y=region["Net_Margin_%"],
+    marker_color=colors_region[:5],
+    showlegend=False,
+    text=region["Net_Margin_%"].apply(lambda x: f"{x:.1f}%"),
+    textposition="outside",
+), row=1, col=2)
+
+fig.update_layout(template="plotly_white", height=400,
+    title="Profit Margins by Region, 2015–2024")
+fig.show()
+```
+
+### Regional Performance Over Time
+
+```{python}
+#| fig-cap: "Net profit trends by region from 2015–2024"
+
+region_yearly = df.groupby(["Year","Region"])["Net_Profit"].sum().reset_index()
+
+fig = px.line(
+    region_yearly,
+    x="Year", y="Net_Profit",
+    color="Region",
+    title="Net Profit by Region, 2015–2024",
+    markers=True,
+    template="plotly_white",
+    labels={"Net_Profit": "Net Profit (€)"},
+    color_discrete_sequence=px.colors.qualitative.Set2,
+)
+fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+fig.update_layout(height=400)
+fig.show()
+```
+
+### Units Sold by Region
+
+```{python}
+#| fig-cap: "Total units sold per region per year — showing declining demand"
+
+units_region = df.groupby(["Year","Region"])["Units_Sold"].sum().reset_index()
+
+fig = px.line(
+    units_region,
+    x="Year", y="Units_Sold",
+    color="Region",
+    title="Total Units Sold by Region, 2015–2024",
+    markers=True,
+    template="plotly_white",
+    labels={"Units_Sold": "Units Sold"},
+    color_discrete_sequence=px.colors.qualitative.Set2,
+)
+fig.update_layout(height=400)
+fig.show()
+```
+
+::: {.callout-important}
+## Regional Findings
+- **South America** dominates with 57% of net profit share — the only region with upward-trending revenue
+- **Europe** and **Africa** recorded net losses (-2.6% and -6.6% respectively)
+- Units sold is **declining in all regions except South America**
+:::
+
+## Category Analysis
+
+### Profit Margins by Category (2015–2024)
+
+```{python}
+#| fig-cap: "Gross and net profit margins across all 10 product categories"
+
+cat = df.groupby("Category")[["Total_Revenue","Total_Profit","Net_Profit"]].sum().reset_index()
+cat["Gross_%"] = (cat["Total_Profit"] / cat["Total_Revenue"] * 100).round(2)
+cat["Net_%"] = (cat["Net_Profit"] / cat["Total_Revenue"] * 100).round(2)
+cat = cat.sort_values("Gross_%", ascending=False)
+
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    name="Gross Profit Margin %",
+    x=cat["Category"], y=cat["Gross_%"],
+    marker_color="#4C72B0",
+))
+fig.add_trace(go.Bar(
+    name="Net Profit Margin %",
+    x=cat["Category"], y=cat["Net_%"],
+    marker_color="#DD8452",
+))
+fig.add_hline(y=0, line_dash="dash", line_color="gray")
+fig.update_layout(
+    barmode="group",
+    title="Gross vs Net Profit Margin by Category, 2015–2024",
+    template="plotly_white",
+    yaxis_title="Margin (%)",
+    height=450,
+)
+fig.show()
+```
+
+### Shipping Costs by Region
+
+```{python}
+#| fig-cap: "Shipping cost trends by region — South America incurs highest costs"
+
+ship = df.groupby(["Year","Region"])["Shipping_Cost"].sum().reset_index()
+
+fig = px.bar(
+    ship, x="Year", y="Shipping_Cost",
+    color="Region",
+    title="Total Shipping Costs by Region, 2015–2024",
+    template="plotly_white",
+    labels={"Shipping_Cost": "Shipping Cost (€)"},
+    color_discrete_sequence=px.colors.qualitative.Set2,
+    barmode="stack",
+)
+fig.update_layout(height=400)
+fig.show()
+```
+
+## 2024 Focus: Current Year Performance
+
+```{python}
+#| fig-cap: "2024 net profit by region — Asia and North America in loss"
+
+df_2024 = df[df["Year"] == df["Year"].max()]
+
+reg_2024 = df_2024.groupby("Region")[["Total_Revenue","Total_Profit","Net_Profit","Units_Sold","Discount"]].sum().reset_index()
+reg_2024["Gross_%"] = (reg_2024["Total_Profit"] / reg_2024["Total_Revenue"] * 100).round(2)
+reg_2024["Net_%"] = (reg_2024["Net_Profit"] / reg_2024["Total_Revenue"] * 100).round(2)
+
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=reg_2024["Region"],
+    y=reg_2024["Gross_%"],
+    name="Gross Margin %",
+    marker_color="#4C72B0",
+    text=reg_2024["Gross_%"].apply(lambda x: f"{x:.1f}%"),
+    textposition="outside",
+))
+fig.add_trace(go.Bar(
+    x=reg_2024["Region"],
+    y=reg_2024["Net_%"],
+    name="Net Margin %",
+    marker_color="#DD8452",
+    text=reg_2024["Net_%"].apply(lambda x: f"{x:.1f}%"),
+    textposition="outside",
+))
+fig.add_hline(y=0, line_dash="dash", line_color="gray")
+fig.update_layout(
+    barmode="group",
+    title="Gross vs Net Profit Margin by Region, 2024",
+    template="plotly_white",
+    height=420,
+)
+fig.show()
+```
+
+### Discount Impact Analysis
+
+```{python}
+#| fig-cap: "Disproportionate discounts in North America are eroding net profit"
+
+disc = df_2024.groupby("Region")[["Discount","Net_Profit"]].sum().reset_index()
+
+fig = make_subplots(rows=1, cols=2,
+    subplot_titles=["Total Discount Given by Region (2024)",
+                    "Net Profit by Region (2024)"])
+
+fig.add_trace(go.Bar(
+    x=disc["Region"], y=disc["Discount"],
+    marker_color="#e74c3c", showlegend=False,
+    text=disc["Discount"].apply(lambda x: f"€{x/1000:.0f}K"),
+    textposition="outside",
+), row=1, col=1)
+
+fig.add_trace(go.Bar(
+    x=disc["Region"], y=disc["Net_Profit"],
+    marker_color=["#2ecc71" if v > 0 else "#e74c3c" for v in disc["Net_Profit"]],
+    showlegend=False,
+    text=disc["Net_Profit"].apply(lambda x: f"€{x/1000:.0f}K"),
+    textposition="outside",
+), row=1, col=2)
+
+fig.add_hline(y=0, row=1, col=2, line_dash="dash", line_color="gray")
+fig.update_layout(template="plotly_white", height=420,
+    title="Discount vs Net Profit by Region, 2024")
+fig.show()
+```
+## Methodology
+
+The analysis followed a structured business analytics approach:
+
+1. **Problem Definition**  
+   Identify key drivers of profitability across regions and product categories.
+
+2. **Data Preparation**  
+   Cleaned and structured the dataset, extracted time-based variables, and ensured consistency across financial metrics.
+
+3. **Exploratory Analysis**  
+   Analysed trends in revenue, cost, profit, and net profit over time.
+
+4. **Comparative Analysis**  
+   Compared performance across regions and product categories to identify top and underperforming areas.
+
+5. **Visualisation**  
+   Used interactive Plotly charts to highlight patterns and trends.
+
+6. **Insight Generation**  
+   Translated analytical findings into strategic business recommendations.
+
+## Key Findings & Recommendations
+
+| Finding | Recommendation |
+|---|---|
+| Revenue declining since 2019 | Prioritise sustainable, gradual growth over volume |
+| South America drives 57% of net profit | Invest in regional distribution hub to reduce shipping costs |
+| Europe & Africa in net loss | Improve cost management and pricing strategy |
+| Excessive discounts in North America | Revise discount policy — especially for Travel category |
+| Energy sector: 66% net margin in 2024 | Scale Energy operations in South America |
+| Post-Covid decline in North America Travel | Investigate South America's recovery model |
+
+::: {.callout-tip}
+## Strategic Priority
+South America's Energy sector generated **€576K net profit** in 2024 alone — nearly double that of Finance. This is the highest-return segment and should be the primary focus for investment and scaling.
+:::
+
+## Reflection
+
+This was my first experience working with a real business dataset in a group setting. The most challenging aspect was translating raw financial data into clear, actionable insights for a non-technical audience. I also learned how important it is to look beyond headline metrics — Europe appeared to be the best-performing region in 2024 based on gross margin, but deeper analysis revealed South America's superior performance when volume was accounted for. Working as a team also taught me the value of dividing analytical tasks logically and integrating findings into a coherent narrative.
+
+## Conclusion
+
+This project provided a comprehensive analysis of AgriFood Global’s financial performance across regions and product categories. The findings revealed that profitability is highly concentrated in specific regions, particularly South America, while other regions require strategic improvements.
+
+The analysis also highlighted that revenue growth alone does not guarantee profitability, as factors such as cost management, discounts, and shipping expenses significantly impact net profit.
+
+From a business perspective, focusing on high-margin regions and categories, while improving efficiency in underperforming areas, can lead to more sustainable and profitable growth. This project demonstrates the value of data-driven decision-making in guiding strategic business actions.

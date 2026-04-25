@@ -1,0 +1,65 @@
+---
+title: "Reflection"
+---
+
+## Reflection
+
+::: {.callout-note}
+The **BAA1104 E-Portfolio and Business Analytics Challenges** module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto.
+:::
+
+---
+
+## Skills Developed
+
+### 📌 Portfolio & Quarto Development
+- Learned how to build a **complete website using Quarto**
+- Structured pages for consistency across projects
+- Integrated **Python code, visuals, and explanations**
+
+### 📊 Communication Skills
+- Developed ability to **present analytical findings clearly**
+- Improved writing for both technical and non-technical audiences
+- Focused on storytelling, not just analysis
+
+---
+
+## Challenges and Solutions
+
+::: {.callout-tip}
+**Challenge:** Maintaining a consistent layout across all project pages  
+**Solution:** Created a repeatable structure (Overview → Analysis → Findings → Reflection)
+:::
+
+::: {.callout-tip}
+**Challenge:** Combining code, visuals, and explanations  
+**Solution:** Practised structuring content into clear sections and improving readability
+:::
+
+---
+
+## Key Learnings
+
+::: {.callout-important}
+- Presenting work is just as important as doing the analysis  
+- A well-designed portfolio improves clarity and impact  
+- Communication is a core skill in business analytics  
+:::
+
+The module also included several **guest speakers**, whose insights were extremely valuable. Engaging with them helped me understand how analytical skills are applied in real-world business environments and what employers expect from graduates.
+
+---
+
+## Future Development
+
+- Improve **visual design and interactivity** (e.g. dashboards)
+- Continue developing **data storytelling skills**
+- Strengthen ability to translate analysis into **business insights**
+
+---
+
+## Conclusion
+
+::: {.callout-note}
+Overall, the **BAA1104 E-Portfolio and Business Analytics Challenges** module has been highly valuable in preparing me to present my work professionally. It has strengthened both my communication and analytical presentation skills, providing a strong foundation for future career development.
+:::

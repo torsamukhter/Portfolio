@@ -1,0 +1,94 @@
+---
+title: "About Me"
+toc: true
+---
+
+## My Journey
+
+I was born and raised in **Rome, Italy**, where I developed a strong interest in communication, languages, and understanding how people and businesses interact. Growing up in a multicultural environment shaped my curiosity about the world and led me to pursue a path that combines **analytical thinking** with **marketing strategy**.
+
+Before moving to Dublin, I worked as a **Marketing Consultant** and **Administrative and Sales Consultant**, where I built a solid foundation in business operations, customer relations, and strategic thinking. During this time, I became particularly interested in how **data can influence business decisions**, which motivated me to explore this field further.
+
+I am currently completing my **MSc in Business Analytics at Dublin City University**, where I have developed practical skills in **Python, SQL, Power BI, and machine learning**. Through my academic projects, I have analysed financial fraud datasets and explored advanced models for sentiment analysis, learning how to turn complex data into clear and actionable insights.
+
+I aim to build a career in **consulting or technology**, combining my analytical skills with my business background to support **data-driven decision making**.
+
+---
+
+## How I Work
+
+::: {.workflow}
+
+::: {.workflow-step}
+### 1. Understand  
+Identify the business problem, goal, and available data.
+:::
+
+::: {.workflow-arrow}
+→
+:::
+
+::: {.workflow-step}
+### 2. Prepare  
+Clean, organise, and explore the data.
+:::
+
+::: {.workflow-arrow}
+→
+:::
+
+::: {.workflow-step}
+### 3. Analyse  
+Use Python, SQL, Power BI, machine learning, or NLP to find insights.
+:::
+
+::: {.workflow-arrow}
+→
+:::
+
+::: {.workflow-step}
+### 4. Communicate  
+Present results clearly through dashboards, visuals, and explanations.
+:::
+
+:::
+---
+
+## Languages
+
+::: {.language-grid}
+
+::: {.language-card}
+### 🇮🇹 Italian  
+Native
+:::
+
+::: {.language-card}
+### 🇬🇧 English  
+Fluent
+:::
+
+::: {.language-card}
+### 🇧🇩 Bangla  
+Native
+:::
+
+::: {.language-card}
+### 🇮🇳 Hindi  
+Conversational
+:::
+
+::: {.language-card}
+### 🇵🇰 Urdu  
+Conversational
+:::
+
+:::
+
+---
+
+## Hobbies & Interests
+
+I have a genuine passion for **travel and discovering new cultures**. Having grown up in Italy and now living in Ireland, I have always been drawn to exploring different parts of the world. Every new place teaches me something new about people, traditions, and ways of thinking, which I believe makes me a more well-rounded and empathetic professional.
+
+I also have a strong passion for **makeup as a form of art**. I see it as a creative way to express ideas and enhance natural beauty. This creative side reflects my personality beyond data and analytics — someone who values **creativity, curiosity, and self-expression**.
