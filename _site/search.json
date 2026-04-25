@@ -14,6 +14,13 @@
     "text": "This project was completed as part of BAA1089: Statistical Models and Methods for Business Analytics at Dublin City University. The goal was to analyse a financial fraud dataset, uncover patterns in fraudulent transactions, and build predictive models to support fraud detection.\n\n\n\n\n\n\nNote\n\n\n\nThe dataset contains 500 rows and 23 columns, representing individual customer transactions. Variables include 12 numerical, 11 categorical, and 2 ID fields. All code below reproduces the analysis pipeline using synthetically generated data that mirrors the original dataset’s statistical properties."
   },
   {
+    "objectID": "Project/list/fraud-analysis.html#business-problem",
+    "href": "Project/list/fraud-analysis.html#business-problem",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Business Problem",
+    "text": "Business Problem\nFinancial fraud represents a significant risk for financial institutions, leading to substantial financial losses and reputational damage.\nThe key question addressed in this project is:\n\nHow can transaction and customer data be used to identify patterns of fraudulent behaviour and improve fraud detection?\n\nTraditional rule-based systems are often insufficient, making it necessary to apply data-driven and machine learning approaches to detect suspicious activity more effectively."
+  },
+  {
     "objectID": "Project/list/fraud-analysis.html#analysis-workflow",
     "href": "Project/list/fraud-analysis.html#analysis-workflow",
     "title": "Financial Fraud Victim Analysis",
@@ -54,6 +61,13 @@
     "title": "Financial Fraud Victim Analysis",
     "section": "Predictive Modelling",
     "text": "Predictive Modelling\n\nClassification Model — Confusion Matrix\n\n\nCode\nfeatures = [\"age\",\"personal_income\",\"family_income\",\"credit_score\",\n            \"loan_amount\",\"transaction_amount\",\"account_age_days\",\n            \"num_prev_transactions\",\"avg_transaction_value\",\n            \"internet_usage_hrs\",\"mobile_usage_hrs\"]\n\nX = df[features]\ny = df[\"is_fraud\"]\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)\n\nclf = RandomForestClassifier(n_estimators=100, random_state=42)\nclf.fit(X_train, y_train)\ny_pred = clf.predict(X_test)\n\ncm = confusion_matrix(y_test, y_pred)\n\nfig = px.imshow(\n    cm,\n    text_auto=True,\n    labels=dict(x=\"Predicted Label\", y=\"True Label\"),\n    x=[\"Non-Fraud (0)\", \"Fraud (1)\"],\n    y=[\"Non-Fraud (0)\", \"Fraud (1)\"],\n    color_continuous_scale=\"Blues\",\n    title=\"Confusion Matrix — Classification Model\",\n)\nfig.update_layout(template=\"plotly_white\")\nfig.show()\n\n\n                            \n                                            \nConfusion matrix for the fraud classification model\n\n\n\n\nRandom Forest — Feature Importance\n\n\nCode\nreg = RandomForestRegressor(n_estimators=100, random_state=42)\nreg.fit(X_train, df.loc[X_train.index, \"fraud_amount\"])\n\nimportance_df = pd.DataFrame({\n    \"Feature\": features,\n    \"Importance\": reg.feature_importances_\n}).sort_values(\"Importance\")\n\nfig = px.bar(\n    importance_df,\n    x=\"Importance\",\n    y=\"Feature\",\n    orientation=\"h\",\n    title=\"Feature Importance — Random Forest Regression\",\n    labels={\"Importance\": \"Importance Score\"},\n    template=\"plotly_white\",\n    color=\"Importance\",\n    color_continuous_scale=\"Blues\",\n)\nfig.show()\n\n\n                            \n                                            \nFeature importance scores from the Random Forest regression model"
+  },
+  {
+    "objectID": "Project/list/fraud-analysis.html#methodology",
+    "href": "Project/list/fraud-analysis.html#methodology",
+    "title": "Financial Fraud Victim Analysis",
+    "section": "Methodology",
+    "text": "Methodology\nThe project follows a structured analytics workflow:\n\nProblem Definition\nIdentify the need to detect fraudulent transactions using data.\nData Preparation\nHandle missing values, detect outliers, and apply normalisation.\nExploratory Data Analysis\nAnalyse distributions, variability, and correlations across variables.\nFraud Pattern Analysis\nExamine fraud occurrence by transaction type and device type.\nModel Implementation\nApply Random Forest models for classification and regression.\nEvaluation\nAssess model performance using confusion matrix and feature importance."
   },
   {
     "objectID": "Project/list/fraud-analysis.html#key-findings",
@@ -119,11 +133,11 @@
     "text": "Model Comparison — BERT vs GPT\n\nApproach Summary\n\n\n\n\nBERT\nGPT (Zero-shot)\n\n\n\n\nType\nDiscriminative\nGenerative\n\n\nMethod\nFine-tuning on labelled data\nZero-shot prompting\n\n\nTraining required\nYes\nNo\n\n\nTokeniser\nWordPiece\nBPE\n\n\nInput limit\n512 tokens\n4096+ tokens\n\n\nCost\nCompute cost\nAPI cost\n\n\n\n\n\nSimulated Results (based on reported metrics)\n\n\nCode\nmetrics = [\"Accuracy\", \"Precision\", \"Recall\", \"F1-Score\"]\nbert_scores = [0.91, 0.90, 0.92, 0.91]\ngpt_scores  = [0.85, 0.84, 0.87, 0.85]\n\nfig = go.Figure()\nfig.add_trace(go.Bar(\n    name=\"BERT (Fine-tuned)\",\n    x=metrics,\n    y=bert_scores,\n    marker_color=\"#4C72B0\",\n))\nfig.add_trace(go.Bar(\n    name=\"GPT (Zero-shot)\",\n    x=metrics,\n    y=gpt_scores,\n    marker_color=\"#DD8452\",\n))\nfig.update_layout(\n    barmode=\"group\",\n    title=\"BERT vs GPT — Performance Metrics\",\n    yaxis=dict(range=[0.7, 1.0], title=\"Score\"),\n    template=\"plotly_white\",\n    yaxis_tickformat=\".0%\",\n)\nfig.show()\n\n\n                            \n                                            \nPerformance comparison between BERT and GPT across key metrics\n\n\n\n\nConfusion Matrix — BERT\n\n\nCode\nimport plotly.figure_factory as ff\n\n# Simulated confusion matrix based on 91% accuracy on ~4000 test samples\ncm_bert = [[3280, 220],\n           [140, 360]]\n\nfig = px.imshow(\n    cm_bert,\n    text_auto=True,\n    labels=dict(x=\"Predicted\", y=\"Actual\"),\n    x=[\"Negative (0)\", \"Positive (1)\"],\n    y=[\"Negative (0)\", \"Positive (1)\"],\n    color_continuous_scale=\"Blues\",\n    title=\"Confusion Matrix — BERT\",\n)\nfig.update_layout(template=\"plotly_white\")\nfig.show()\n\n\n                            \n                                            \nConfusion matrix for the fine-tuned BERT model on the test set\n\n\n\n\nRecommended IND Alignment\n\n\nCode\nalign = df_binary.groupby([\"Sentiment\", \"Recommended IND\"]).size().reset_index(name=\"Count\")\nalign[\"Recommended\"] = align[\"Recommended IND\"].map({1: \"Recommended\", 0: \"Not Recommended\"})\n\nfig = px.bar(\n    align,\n    x=\"Sentiment\",\n    y=\"Count\",\n    color=\"Recommended\",\n    title=\"Sentiment vs Customer Recommendation\",\n    template=\"plotly_white\",\n    barmode=\"group\",\n    color_discrete_sequence=[\"#e74c3c\", \"#2ecc71\"],\n)\nfig.show()\n\n\n                            \n                                            \nHow well does the Recommended IND field align with our sentiment labels?"
   },
   {
-    "objectID": "Project/list/nlp-sentiment.html#key-findings",
-    "href": "Project/list/nlp-sentiment.html#key-findings",
+    "objectID": "Project/list/nlp-sentiment.html#methodology",
+    "href": "Project/list/nlp-sentiment.html#methodology",
     "title": "BERT vs GPT for Sentiment Analysis",
-    "section": "Key Findings",
-    "text": "Key Findings\n\n\n\n\n\n\nImportantResults Summary\n\n\n\n\nBERT outperformed GPT across all metrics (F1: 0.91 vs 0.85)\nBERT’s fine-tuning on domain-specific data gave it a significant edge\nGPT’s zero-shot approach is more flexible but less precise on specialised tasks\nNegative reviews tend to be longer — customers write more when dissatisfied\nDresses had the highest review volume; Jackets had the highest negative ratio"
+    "section": "Methodology",
+    "text": "Methodology\nThe workflow followed a structured analytics pipeline:\n\nProblem Definition\nIdentify the need for automated sentiment classification at scale.\nData Preparation\nClean and preprocess review text, handle missing values, and create sentiment labels.\nExploratory Analysis\nAnalyse rating distribution, review length, and department-level patterns.\nModel Implementation\n\nFine-tuned BERT on labelled data\n\nApplied GPT using zero-shot prompting\n\nEvaluation\nCompared models using accuracy, precision, recall, and F1-score. ## Key Findings\n\n\n\n\n\n\n\nImportantResults Summary\n\n\n\n\nBERT outperformed GPT across all metrics (F1: 0.91 vs 0.85)\nBERT’s fine-tuning on domain-specific data gave it a significant edge\nGPT’s zero-shot approach is more flexible but less precise on specialised tasks\nNegative reviews tend to be longer — customers write more when dissatisfied\nDresses had the highest review volume; Jackets had the highest negative ratio"
   },
   {
     "objectID": "Project/list/nlp-sentiment.html#ethical-considerations",
@@ -180,6 +194,76 @@
     "title": "About Me",
     "section": "Hobbies & Interests",
     "text": "Hobbies & Interests\nI have a genuine passion for travel and discovering new cultures. Having grown up in Italy and now living in Ireland, I have always been drawn to exploring different parts of the world. Every new place teaches me something new about people, traditions, and ways of thinking, which I believe makes me a more well-rounded and empathetic professional.\nI also have a strong passion for makeup as a form of art. I see it as a creative way to express ideas and enhance natural beauty. This creative side reflects my personality beyond data and analytics — someone who values creativity, curiosity, and self-expression."
+  },
+  {
+    "objectID": "reflection.html",
+    "href": "reflection.html",
+    "title": "Reflection",
+    "section": "",
+    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
+  },
+  {
+    "objectID": "reflection.html#reflection",
+    "href": "reflection.html#reflection",
+    "title": "Reflection",
+    "section": "",
+    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
+  },
+  {
+    "objectID": "reflection.html#skills-developed",
+    "href": "reflection.html#skills-developed",
+    "title": "Reflection",
+    "section": "Skills Developed",
+    "text": "Skills Developed\n\n📌 Portfolio & Quarto Development\n\nLearned how to build a complete website using Quarto\nStructured pages for consistency across projects\nIntegrated Python code, visuals, and explanations\n\n\n\n📊 Communication Skills\n\nDeveloped ability to present analytical findings clearly\nImproved writing for both technical and non-technical audiences\nFocused on storytelling, not just analysis"
+  },
+  {
+    "objectID": "reflection.html#challenges-and-solutions",
+    "href": "reflection.html#challenges-and-solutions",
+    "title": "Reflection",
+    "section": "Challenges and Solutions",
+    "text": "Challenges and Solutions\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Maintaining a consistent layout across all project pages\nSolution: Created a repeatable structure (Overview → Analysis → Findings → Reflection)\n\n\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Combining code, visuals, and explanations\nSolution: Practised structuring content into clear sections and improving readability"
+  },
+  {
+    "objectID": "reflection.html#key-learnings",
+    "href": "reflection.html#key-learnings",
+    "title": "Reflection",
+    "section": "Key Learnings",
+    "text": "Key Learnings\n\n\n\n\n\n\nImportant\n\n\n\n\nPresenting work is just as important as doing the analysis\n\nA well-designed portfolio improves clarity and impact\n\nCommunication is a core skill in business analytics\n\n\n\n\nThe module also included several guest speakers, whose insights were extremely valuable. Engaging with them helped me understand how analytical skills are applied in real-world business environments and what employers expect from graduates."
+  },
+  {
+    "objectID": "reflection.html#future-development",
+    "href": "reflection.html#future-development",
+    "title": "Reflection",
+    "section": "Future Development",
+    "text": "Future Development\n\nImprove visual design and interactivity (e.g. dashboards)\nContinue developing data storytelling skills\nStrengthen ability to translate analysis into business insights"
+  },
+  {
+    "objectID": "reflection.html#conclusion",
+    "href": "reflection.html#conclusion",
+    "title": "Reflection",
+    "section": "Conclusion",
+    "text": "Conclusion\n\n\n\n\n\n\nNote\n\n\n\nOverall, the BAA1104 E-Portfolio and Business Analytics Challenges module has been highly valuable in preparing me to present my work professionally. It has strengthened both my communication and analytical presentation skills, providing a strong foundation for future career development."
+  },
+  {
+    "objectID": "contact.html",
+    "href": "contact.html",
+    "title": "Contact",
+    "section": "",
+    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
+  },
+  {
+    "objectID": "contact.html#contact",
+    "href": "contact.html#contact",
+    "title": "Contact",
+    "section": "",
+    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
+  },
+  {
+    "objectID": "contact.html#references",
+    "href": "contact.html#references",
+    "title": "Contact",
+    "section": "References",
+    "text": "References\nProfessional references are available upon request."
   },
   {
     "objectID": "index.html",
@@ -273,6 +357,13 @@
     "text": "2024 Focus: Current Year Performance\n\n\nCode\ndf_2024 = df[df[\"Year\"] == df[\"Year\"].max()]\n\nreg_2024 = df_2024.groupby(\"Region\")[[\"Total_Revenue\",\"Total_Profit\",\"Net_Profit\",\"Units_Sold\",\"Discount\"]].sum().reset_index()\nreg_2024[\"Gross_%\"] = (reg_2024[\"Total_Profit\"] / reg_2024[\"Total_Revenue\"] * 100).round(2)\nreg_2024[\"Net_%\"] = (reg_2024[\"Net_Profit\"] / reg_2024[\"Total_Revenue\"] * 100).round(2)\n\nfig = go.Figure()\nfig.add_trace(go.Bar(\n    x=reg_2024[\"Region\"],\n    y=reg_2024[\"Gross_%\"],\n    name=\"Gross Margin %\",\n    marker_color=\"#4C72B0\",\n    text=reg_2024[\"Gross_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n))\nfig.add_trace(go.Bar(\n    x=reg_2024[\"Region\"],\n    y=reg_2024[\"Net_%\"],\n    name=\"Net Margin %\",\n    marker_color=\"#DD8452\",\n    text=reg_2024[\"Net_%\"].apply(lambda x: f\"{x:.1f}%\"),\n    textposition=\"outside\",\n))\nfig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\")\nfig.update_layout(\n    barmode=\"group\",\n    title=\"Gross vs Net Profit Margin by Region, 2024\",\n    template=\"plotly_white\",\n    height=420,\n)\nfig.show()\n\n\n                            \n                                            \n2024 net profit by region — Asia and North America in loss\n\n\n\nDiscount Impact Analysis\n\n\nCode\ndisc = df_2024.groupby(\"Region\")[[\"Discount\",\"Net_Profit\"]].sum().reset_index()\n\nfig = make_subplots(rows=1, cols=2,\n    subplot_titles=[\"Total Discount Given by Region (2024)\",\n                    \"Net Profit by Region (2024)\"])\n\nfig.add_trace(go.Bar(\n    x=disc[\"Region\"], y=disc[\"Discount\"],\n    marker_color=\"#e74c3c\", showlegend=False,\n    text=disc[\"Discount\"].apply(lambda x: f\"€{x/1000:.0f}K\"),\n    textposition=\"outside\",\n), row=1, col=1)\n\nfig.add_trace(go.Bar(\n    x=disc[\"Region\"], y=disc[\"Net_Profit\"],\n    marker_color=[\"#2ecc71\" if v &gt; 0 else \"#e74c3c\" for v in disc[\"Net_Profit\"]],\n    showlegend=False,\n    text=disc[\"Net_Profit\"].apply(lambda x: f\"€{x/1000:.0f}K\"),\n    textposition=\"outside\",\n), row=1, col=2)\n\nfig.add_hline(y=0, row=1, col=2, line_dash=\"dash\", line_color=\"gray\")\nfig.update_layout(template=\"plotly_white\", height=420,\n    title=\"Discount vs Net Profit by Region, 2024\")\nfig.show()\n\n\n                            \n                                            \nDisproportionate discounts in North America are eroding net profit"
   },
   {
+    "objectID": "Project/list/agrifood-analysis.html#methodology",
+    "href": "Project/list/agrifood-analysis.html#methodology",
+    "title": "Margins that Matter: AgriFood Global Analysis",
+    "section": "Methodology",
+    "text": "Methodology\nThe analysis followed a structured business analytics approach:\n\nProblem Definition\nIdentify key drivers of profitability across regions and product categories.\nData Preparation\nCleaned and structured the dataset, extracted time-based variables, and ensured consistency across financial metrics.\nExploratory Analysis\nAnalysed trends in revenue, cost, profit, and net profit over time.\nComparative Analysis\nCompared performance across regions and product categories to identify top and underperforming areas.\nVisualisation\nUsed interactive Plotly charts to highlight patterns and trends.\nInsight Generation\nTranslated analytical findings into strategic business recommendations."
+  },
+  {
     "objectID": "Project/list/agrifood-analysis.html#key-findings-recommendations",
     "href": "Project/list/agrifood-analysis.html#key-findings-recommendations",
     "title": "Margins that Matter: AgriFood Global Analysis",
@@ -287,108 +378,10 @@
     "text": "Reflection\nThis was my first experience working with a real business dataset in a group setting. The most challenging aspect was translating raw financial data into clear, actionable insights for a non-technical audience. I also learned how important it is to look beyond headline metrics — Europe appeared to be the best-performing region in 2024 based on gross margin, but deeper analysis revealed South America’s superior performance when volume was accounted for. Working as a team also taught me the value of dividing analytical tasks logically and integrating findings into a coherent narrative."
   },
   {
-    "objectID": "Project/list/nlp-sentiment.html#methodology",
-    "href": "Project/list/nlp-sentiment.html#methodology",
-    "title": "BERT vs GPT for Sentiment Analysis",
-    "section": "Methodology",
-    "text": "Methodology\nThe workflow followed a structured analytics pipeline:\n\nProblem Definition\nIdentify the need for automated sentiment classification at scale.\nData Preparation\nClean and preprocess review text, handle missing values, and create sentiment labels.\nExploratory Analysis\nAnalyse rating distribution, review length, and department-level patterns.\nModel Implementation\n\nFine-tuned BERT on labelled data\n\nApplied GPT using zero-shot prompting\n\nEvaluation\nCompared models using accuracy, precision, recall, and F1-score. ## Key Findings\n\n\n\n\n\n\n\nImportantResults Summary\n\n\n\n\nBERT outperformed GPT across all metrics (F1: 0.91 vs 0.85)\nBERT’s fine-tuning on domain-specific data gave it a significant edge\nGPT’s zero-shot approach is more flexible but less precise on specialised tasks\nNegative reviews tend to be longer — customers write more when dissatisfied\nDresses had the highest review volume; Jackets had the highest negative ratio"
-  },
-  {
-    "objectID": "Project/list/fraud-analysis.html#business-problem",
-    "href": "Project/list/fraud-analysis.html#business-problem",
-    "title": "Financial Fraud Victim Analysis",
-    "section": "Business Problem",
-    "text": "Business Problem\nFinancial fraud represents a significant risk for financial institutions, leading to substantial financial losses and reputational damage.\nThe key question addressed in this project is:\n\nHow can transaction and customer data be used to identify patterns of fraudulent behaviour and improve fraud detection?\n\nTraditional rule-based systems are often insufficient, making it necessary to apply data-driven and machine learning approaches to detect suspicious activity more effectively."
-  },
-  {
-    "objectID": "Project/list/fraud-analysis.html#methodology",
-    "href": "Project/list/fraud-analysis.html#methodology",
-    "title": "Financial Fraud Victim Analysis",
-    "section": "Methodology",
-    "text": "Methodology\nThe project follows a structured analytics workflow:\n\nProblem Definition\nIdentify the need to detect fraudulent transactions using data.\nData Preparation\nHandle missing values, detect outliers, and apply normalisation.\nExploratory Data Analysis\nAnalyse distributions, variability, and correlations across variables.\nFraud Pattern Analysis\nExamine fraud occurrence by transaction type and device type.\nModel Implementation\nApply Random Forest models for classification and regression.\nEvaluation\nAssess model performance using confusion matrix and feature importance."
-  },
-  {
-    "objectID": "Project/list/agrifood-analysis.html#methodology",
-    "href": "Project/list/agrifood-analysis.html#methodology",
-    "title": "Margins that Matter: AgriFood Global Analysis",
-    "section": "Methodology",
-    "text": "Methodology\nThe analysis followed a structured business analytics approach:\n\nProblem Definition\nIdentify key drivers of profitability across regions and product categories.\nData Preparation\nCleaned and structured the dataset, extracted time-based variables, and ensured consistency across financial metrics.\nExploratory Analysis\nAnalysed trends in revenue, cost, profit, and net profit over time.\nComparative Analysis\nCompared performance across regions and product categories to identify top and underperforming areas.\nVisualisation\nUsed interactive Plotly charts to highlight patterns and trends.\nInsight Generation\nTranslated analytical findings into strategic business recommendations."
-  },
-  {
     "objectID": "Project/list/agrifood-analysis.html#conclusion",
     "href": "Project/list/agrifood-analysis.html#conclusion",
     "title": "Margins that Matter: AgriFood Global Analysis",
     "section": "Conclusion",
     "text": "Conclusion\nThis project provided a comprehensive analysis of AgriFood Global’s financial performance across regions and product categories. The findings revealed that profitability is highly concentrated in specific regions, particularly South America, while other regions require strategic improvements.\nThe analysis also highlighted that revenue growth alone does not guarantee profitability, as factors such as cost management, discounts, and shipping expenses significantly impact net profit.\nFrom a business perspective, focusing on high-margin regions and categories, while improving efficiency in underperforming areas, can lead to more sustainable and profitable growth. This project demonstrates the value of data-driven decision-making in guiding strategic business actions."
-  },
-  {
-    "objectID": "reflection.html",
-    "href": "reflection.html",
-    "title": "Reflection",
-    "section": "",
-    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
-  },
-  {
-    "objectID": "reflection.html#reflection",
-    "href": "reflection.html#reflection",
-    "title": "Reflection",
-    "section": "",
-    "text": "Note\n\n\n\nThe BAA1104 E-Portfolio and Business Analytics Challenges module has significantly developed my ability to present analytical work in a professional and structured way. Rather than focusing solely on technical skills, the module emphasised how to effectively communicate data-driven insights through the creation of a complete e-portfolio using Quarto."
-  },
-  {
-    "objectID": "reflection.html#skills-developed",
-    "href": "reflection.html#skills-developed",
-    "title": "Reflection",
-    "section": "Skills Developed",
-    "text": "Skills Developed\n\n📌 Portfolio & Quarto Development\n\nLearned how to build a complete website using Quarto\nStructured pages for consistency across projects\nIntegrated Python code, visuals, and explanations\n\n\n\n📊 Communication Skills\n\nDeveloped ability to present analytical findings clearly\nImproved writing for both technical and non-technical audiences\nFocused on storytelling, not just analysis"
-  },
-  {
-    "objectID": "reflection.html#challenges-and-solutions",
-    "href": "reflection.html#challenges-and-solutions",
-    "title": "Reflection",
-    "section": "Challenges and Solutions",
-    "text": "Challenges and Solutions\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Maintaining a consistent layout across all project pages\nSolution: Created a repeatable structure (Overview → Analysis → Findings → Reflection)\n\n\n\n\n\n\n\n\nTip\n\n\n\nChallenge: Combining code, visuals, and explanations\nSolution: Practised structuring content into clear sections and improving readability"
-  },
-  {
-    "objectID": "reflection.html#key-learnings",
-    "href": "reflection.html#key-learnings",
-    "title": "Reflection",
-    "section": "Key Learnings",
-    "text": "Key Learnings\n\n\n\n\n\n\nImportant\n\n\n\n\nPresenting work is just as important as doing the analysis\n\nA well-designed portfolio improves clarity and impact\n\nCommunication is a core skill in business analytics\n\n\n\n\nThe module also included several guest speakers, whose insights were extremely valuable. Engaging with them helped me understand how analytical skills are applied in real-world business environments and what employers expect from graduates."
-  },
-  {
-    "objectID": "reflection.html#future-development",
-    "href": "reflection.html#future-development",
-    "title": "Reflection",
-    "section": "Future Development",
-    "text": "Future Development\n\nImprove visual design and interactivity (e.g. dashboards)\nContinue developing data storytelling skills\nStrengthen ability to translate analysis into business insights"
-  },
-  {
-    "objectID": "reflection.html#conclusion",
-    "href": "reflection.html#conclusion",
-    "title": "Reflection",
-    "section": "Conclusion",
-    "text": "Conclusion\n\n\n\n\n\n\nNote\n\n\n\nOverall, the BAA1104 E-Portfolio and Business Analytics Challenges module has been highly valuable in preparing me to present my work professionally. It has strengthened both my communication and analytical presentation skills, providing a strong foundation for future career development."
-  },
-  {
-    "objectID": "contact.html",
-    "href": "contact.html",
-    "title": "Contact",
-    "section": "",
-    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
-  },
-  {
-    "objectID": "contact.html#contact",
-    "href": "contact.html#contact",
-    "title": "Contact",
-    "section": "",
-    "text": "Thank you for visiting my portfolio. If you are interested in my work or would like to discuss opportunities, collaborations, or projects, please feel free to get in touch. I would be happy to connect.\n\n\n\n\n\n\n\nIf you would like to get in touch, feel free to send me an email. I aim to respond promptly to all professional inquiries.\nEmail me via Gmail\n\n\n\n\n\n\n\n\nConnect with me on LinkedIn to learn more about my academic background, experience, and ongoing projects.\nView my LinkedIn profile\n\n\n\n\n\n\n\n\nExplore my GitHub to see the code behind my projects, including data analysis, machine learning models, and visualisations.\nView my GitHub profile"
-  },
-  {
-    "objectID": "contact.html#references",
-    "href": "contact.html#references",
-    "title": "Contact",
-    "section": "References",
-    "text": "References\nProfessional references are available upon request."
   }
 ]
